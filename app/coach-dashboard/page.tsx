@@ -77,7 +77,7 @@ function CoachDashboardContent() {
   const [standingsLoading, setStandingsLoading] = useState(false);
   const [standingsAmateur, setStandingsAmateur] = useState(false);
   // Amateur: Gemini search
-  const [regionInput, setRegionInput] = useState('');
+  const [cityInput, setCityInput] = useState('');
   const [amateurTeams, setAmateurTeams] = useState<AmateurTeam[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
@@ -101,13 +101,13 @@ function CoachDashboardContent() {
     try {
       const cached = localStorage.getItem(`mastro_amateur_${leagueId}`);
       if (cached) {
-        const { teams, region } = JSON.parse(cached);
+        const { teams, city } = JSON.parse(cached);
         setAmateurTeams(teams || []);
-        setRegionInput(region || '');
+        setCityInput(city || '');
         setSearchDone(true);
       } else {
         setAmateurTeams([]);
-        setRegionInput('');
+        setCityInput('');
         setSearchDone(false);
       }
       setSearchError('');
@@ -181,8 +181,8 @@ function CoachDashboardContent() {
   };
 
   const searchAmateurLeague = async () => {
-    const region = regionInput.trim();
-    if (!region) {
+    const city = cityInput.trim();
+    if (!city) {
       regionInputRef.current?.focus();
       return;
     }
@@ -192,7 +192,7 @@ function CoachDashboardContent() {
     setSearchDone(false);
     try {
       const res = await fetch(
-        `/api/football/amateur-search?league=${selectedLeague}&region=${encodeURIComponent(region)}`
+        `/api/football/amateur-search?league=${selectedLeague}&city=${encodeURIComponent(city)}`
       );
       const data = await res.json();
       if (!data.success) {
@@ -202,7 +202,7 @@ function CoachDashboardContent() {
       const teams: AmateurTeam[] = data.data.teams || [];
       setAmateurTeams(teams);
       setSearchDone(true);
-      localStorage.setItem(`mastro_amateur_${selectedLeague}`, JSON.stringify({ teams, region }));
+      localStorage.setItem(`mastro_amateur_${selectedLeague}`, JSON.stringify({ teams, city }));
     } catch {
       setSearchError('Erreur réseau. Vérifiez votre connexion.');
     } finally {
@@ -356,9 +356,9 @@ function CoachDashboardContent() {
                   <div className="flex items-center gap-2">
                     <span className="text-xl">🤖</span>
                     <div>
-                      <p className="text-sm font-bold text-[#F3F4F6]">Recherche IA</p>
+                      <p className="text-sm font-bold text-[#F3F4F6]">Recherche automatique</p>
                       <p className="text-xs text-[#9CA3AF]">
-                        Entrez votre région et Gemini trouve le classement automatiquement
+                        Entrez votre ville — Gemini cherche le classement sur internet
                       </p>
                     </div>
                   </div>
@@ -366,15 +366,15 @@ function CoachDashboardContent() {
                     <input
                       ref={regionInputRef}
                       type="text"
-                      value={regionInput}
-                      onChange={e => setRegionInput(e.target.value)}
+                      value={cityInput}
+                      onChange={e => setCityInput(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && !searchLoading && searchAmateurLeague()}
-                      placeholder="Ex: Gironde, Île-de-France, Rhône…"
+                      placeholder="Votre ville (ex: Bordeaux, Lyon…)"
                       className="flex-1 min-w-0 bg-[#0A0F0D] border border-[rgba(57,255,20,0.3)] rounded-lg px-3 py-2.5 text-sm text-[#F3F4F6] placeholder-[#4B5563] focus:outline-none focus:border-[#39FF14] transition-colors"
                     />
                     <button
                       onClick={searchAmateurLeague}
-                      disabled={!regionInput.trim() || searchLoading}
+                      disabled={!cityInput.trim() || searchLoading}
                       className="px-4 py-2.5 bg-[#39FF14] text-[#0A0F0D] font-black text-sm rounded-lg hover:scale-105 transition-all disabled:opacity-40 disabled:hover:scale-100 flex-shrink-0 flex items-center gap-1.5"
                     >
                       {searchLoading ? (
@@ -389,7 +389,7 @@ function CoachDashboardContent() {
                   </div>
                   {searchLoading && (
                     <p className="text-xs text-[#9CA3AF] animate-pulse">
-                      Gemini recherche le classement {selectedLeagueName} en {regionInput}…
+                      Gemini recherche le classement {selectedLeagueName} près de {cityInput}…
                     </p>
                   )}
                   {searchError && (
@@ -402,7 +402,7 @@ function CoachDashboardContent() {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs text-[#9CA3AF] font-bold uppercase tracking-wide">
-                        {selectedLeagueName} · {regionInput}
+                        {selectedLeagueName} · {cityInput}
                       </p>
                       <button
                         onClick={() => {
