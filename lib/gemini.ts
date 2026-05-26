@@ -214,17 +214,25 @@ Retourne UNIQUEMENT ce JSON valide, sans aucun texte avant ou après :
       jsonStr = jsonStr.split('```')[1].split('```')[0].trim();
     }
 
-    // Nettoie les caractères problématiques avant parsing
-    // Échappe les apostrophes non échappées dans les strings JSON
-    jsonStr = jsonStr.replace(/: "([^"]*)'([^"]*)"/g, ': "$1\\'$2"');
-
     let parsed: SessionData;
     try {
       parsed = JSON.parse(jsonStr) as SessionData;
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
-      console.error('JSON string around error:', jsonStr.substring(Math.max(0, 7800), 7900));
-      throw new Error(`JSON parsing failed: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+      console.error('JSON length:', jsonStr.length);
+
+      // Essayer de nettoyer les apostrophes non échappées
+      let cleanedJson = jsonStr.replace(/([^\\])'/g, "$1\\'");
+      try {
+        parsed = JSON.parse(cleanedJson) as SessionData;
+      } catch {
+        // Si ça échoue encore, afficher le contexte
+        const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown error';
+        const match = errorMsg.match(/position (\d+)/);
+        const position = match ? parseInt(match[1]) : 7832;
+        console.error('JSON context:', jsonStr.substring(Math.max(0, position - 100), position + 100));
+        throw new Error(`JSON parsing failed: ${errorMsg}`);
+      }
     }
 
     // ── VALIDATION ET CORRECTION DES ILLUSTRATIONS ──────────────────────
