@@ -214,7 +214,18 @@ Retourne UNIQUEMENT ce JSON valide, sans aucun texte avant ou après :
       jsonStr = jsonStr.split('```')[1].split('```')[0].trim();
     }
 
-    const parsed = JSON.parse(jsonStr) as SessionData;
+    // Nettoie les caractères problématiques avant parsing
+    // Échappe les apostrophes non échappées dans les strings JSON
+    jsonStr = jsonStr.replace(/: "([^"]*)'([^"]*)"/g, ': "$1\\'$2"');
+
+    let parsed: SessionData;
+    try {
+      parsed = JSON.parse(jsonStr) as SessionData;
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      console.error('JSON string around error:', jsonStr.substring(Math.max(0, 7800), 7900));
+      throw new Error(`JSON parsing failed: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+    }
 
     // ── VALIDATION ET CORRECTION DES ILLUSTRATIONS ──────────────────────
     // Si Gemini a quand même retourné de l'ASCII → on remplace par un diagramme par défaut
