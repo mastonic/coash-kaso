@@ -36,7 +36,7 @@ function HistoryContent() {
   if (!mounted) return null;
 
   return (
-    <main className="min-h-screen bg-[#0A0F0D]">
+    <main className="min-h-screen min-h-dvh bg-[#0A0F0D]">
       <ToolsNav currentPage="history" />
 
       <section className="max-w-4xl mx-auto px-4 md:px-6 py-8 md:py-12">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { TacticalDiagram } from './TacticalDiagram';
 
 interface TacticsCardProps {
   title: string;
@@ -155,11 +156,29 @@ export function TacticsCard({
             >
               {showIllustration ? '▼ Masquer le schéma' : '▶ Afficher le schéma'}
             </button>
-            {showIllustration && (
-              <div className="mt-2 md:mt-3 p-3 md:p-4 bg-[#0A0F0D] rounded border border-[rgba(57,255,20,0.2)] font-mono text-xs text-[#39FF14] overflow-x-auto">
-                <pre className="whitespace-pre-wrap break-words">{illustration}</pre>
-              </div>
-            )}
+            {showIllustration && (() => {
+              try {
+                const diagram = JSON.parse(illustration);
+                if (diagram.players && Array.isArray(diagram.players) && diagram.players.length > 0) {
+                  return (
+                    <div className="mt-2 md:mt-3 rounded overflow-hidden border border-[rgba(57,255,20,0.2)]">
+                      <TacticalDiagram
+                        players={diagram.players}
+                        movements={diagram.movements || []}
+                        title={safeTitle}
+                      />
+                    </div>
+                  );
+                }
+              } catch {
+                // not valid JSON, fall through to text
+              }
+              return (
+                <div className="mt-2 md:mt-3 p-3 md:p-4 bg-[#0A0F0D] rounded border border-[rgba(57,255,20,0.2)] font-mono text-xs text-[#39FF14] overflow-x-auto">
+                  <pre className="whitespace-pre-wrap break-words">{illustration}</pre>
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
