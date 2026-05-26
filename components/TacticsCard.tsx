@@ -144,43 +144,33 @@ export function TacticsCard({
           </div>
         )}
 
-        {/* Illustration Toggle */}
-        {illustration && (
-          <div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowIllustration(!showIllustration);
-              }}
-              className="text-xs font-bold text-[#39FF14] hover:text-[#10B981] transition-colors uppercase"
-            >
-              {showIllustration ? '▼ Masquer le schéma' : '▶ Afficher le schéma'}
-            </button>
-            {showIllustration && (() => {
-              try {
-                const diagram = JSON.parse(illustration);
-                if (diagram.players && Array.isArray(diagram.players) && diagram.players.length > 0) {
-                  return (
-                    <div className="mt-2 md:mt-3 rounded overflow-hidden border border-[rgba(57,255,20,0.2)]">
+        {/* Illustration Toggle — terrain SVG uniquement, jamais d'ASCII */}
+        {illustration && (() => {
+          try {
+            const diagram = JSON.parse(illustration);
+            if (diagram.players && Array.isArray(diagram.players) && diagram.players.length > 0) {
+              return (
+                <div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowIllustration(!showIllustration); }}
+                    className="text-xs font-bold text-[#39FF14] hover:text-[#10B981] transition-colors uppercase"
+                  >
+                    {showIllustration ? '▼ Masquer le schéma' : '▶ Afficher le schéma'}
+                  </button>
+                  {showIllustration && (
+                    <div className="mt-2 md:mt-3 rounded-xl overflow-hidden border border-[rgba(57,255,20,0.2)]">
                       <TacticalDiagram
                         players={diagram.players}
                         movements={diagram.movements || []}
-                        title={safeTitle}
                       />
                     </div>
-                  );
-                }
-              } catch {
-                // not valid JSON, fall through to text
-              }
-              return (
-                <div className="mt-2 md:mt-3 p-3 md:p-4 bg-[#0A0F0D] rounded border border-[rgba(57,255,20,0.2)] font-mono text-xs text-[#39FF14] overflow-x-auto">
-                  <pre className="whitespace-pre-wrap break-words">{illustration}</pre>
+                  )}
                 </div>
               );
-            })()}
-          </div>
-        )}
+            }
+          } catch { /* illustration invalide → on n'affiche rien */ }
+          return null;
+        })()}
       </div>
     </div>
   );
