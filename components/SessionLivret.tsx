@@ -408,8 +408,8 @@ export function SessionLivret({
         {/* Contenu */}
         <div className="flex-1 overflow-y-auto">
           <h3 className="text-xs font-bold text-[#A0AEA8] uppercase mb-2">Déroulement</h3>
-          <p className="text-gray-700 leading-relaxed text-xs whitespace-pre-wrap line-clamp-6">
-            {item.content.substring(0, 500)}...
+          <p className="text-gray-700 leading-relaxed text-xs whitespace-pre-wrap">
+            {item.content}
           </p>
         </div>
 
