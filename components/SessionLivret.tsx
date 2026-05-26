@@ -44,56 +44,135 @@ const AGE_CATEGORIES = {
   Senior: { label: 'Senior', color: '#EF4444', bgColor: 'bg-red-50' },
 };
 
-// Générer des diagrammes tactiques basés sur le type d'exercice
-function generateTacticalDiagram(type: string, title: string) {
-  const patterns: Record<string, any> = {
-    possession: {
-      players: [
-        { x: 25, y: 25, number: 1, team: 'attaque' },
-        { x: 50, y: 15, number: 2, team: 'attaque' },
-        { x: 75, y: 25, number: 3, team: 'attaque' },
-        { x: 25, y: 50, number: 4, team: 'attaque' },
-        { x: 50, y: 50, number: 5, team: 'attaque' },
-        { x: 75, y: 50, number: 6, team: 'attaque' },
-        { x: 50, y: 75, number: 7, team: 'attaque' },
-      ],
-      movements: [
-        { from: { x: 50, y: 50 }, to: { x: 75, y: 25 }, style: 'passe' },
-        { from: { x: 75, y: 25 }, to: { x: 50, y: 15 }, style: 'passe' },
-      ],
-    },
-    pressing: {
-      players: [
-        { x: 25, y: 20, number: 1, team: 'attaque' },
-        { x: 50, y: 20, number: 2, team: 'attaque' },
-        { x: 75, y: 20, number: 3, team: 'attaque' },
-        { x: 25, y: 70, number: 4, team: 'défense' },
-        { x: 50, y: 70, number: 5, team: 'défense' },
-        { x: 75, y: 70, number: 6, team: 'défense' },
-      ],
-      movements: [
-        { from: { x: 25, y: 20 }, to: { x: 25, y: 70 }, style: 'déplacement' },
-        { from: { x: 50, y: 20 }, to: { x: 50, y: 70 }, style: 'déplacement' },
-        { from: { x: 75, y: 20 }, to: { x: 75, y: 70 }, style: 'déplacement' },
-      ],
-    },
-    transitions: {
-      players: [
-        { x: 20, y: 30, number: 1, team: 'attaque' },
-        { x: 40, y: 40, number: 2, team: 'attaque' },
-        { x: 60, y: 35, number: 3, team: 'attaque' },
-        { x: 80, y: 50, number: 4, team: 'attaque' },
-        { x: 50, y: 70, number: 5, team: 'défense' },
-      ],
-      movements: [
-        { from: { x: 20, y: 30 }, to: { x: 40, y: 40 }, style: 'dribble' },
-        { from: { x: 40, y: 40 }, to: { x: 60, y: 35 }, style: 'passe' },
-        { from: { x: 60, y: 35 }, to: { x: 80, y: 50 }, style: 'dribble' },
-      ],
-    },
-  };
+// Générer des diagrammes tactiques basés sur les détails de l'exercice
+function generateTacticalDiagram(type: string, title: string, content: string = '') {
+  // Analyser le contenu pour extraire les détails
+  const contentLower = (title + ' ' + content).toLowerCase();
 
-  return patterns[type] || patterns.possession;
+  // Extraire le nombre de joueurs si spécifié
+  const playerCountMatch = contentLower.match(/(\d+)v(\d+)|\b(\d+)\s*(joueurs?|players?)\b/i);
+  const playerCount = playerCountMatch
+    ? parseInt(playerCountMatch[1] || playerCountMatch[3] || '5')
+    : 5;
+
+  // Déterminer le type d'exercice basé sur le contenu
+  const isDefensive = contentLower.includes('défense') || contentLower.includes('pressing');
+  const isPossession = contentLower.includes('possession') || contentLower.includes('passe');
+  const isTransition = contentLower.includes('transition') || contentLower.includes('contre');
+  const isRondo = contentLower.includes('rondo') || contentLower.includes('4v2');
+  const isMatch = contentLower.includes('match') || contentLower.includes('7v7');
+
+  // Générer les positions des joueurs basées sur les détails
+  let players = [];
+  let movements = [];
+
+  if (isRondo) {
+    // Rondo 4v2 - cercle de possession
+    players = [
+      { x: 30, y: 30, number: 1, team: 'attaque' },
+      { x: 70, y: 30, number: 2, team: 'attaque' },
+      { x: 70, y: 70, number: 3, team: 'attaque' },
+      { x: 30, y: 70, number: 4, team: 'attaque' },
+      { x: 50, y: 40, number: 5, team: 'défense' },
+      { x: 50, y: 60, number: 6, team: 'défense' },
+    ];
+    movements = [
+      { from: { x: 30, y: 30 }, to: { x: 70, y: 30 }, style: 'passe' },
+      { from: { x: 70, y: 30 }, to: { x: 70, y: 70 }, style: 'passe' },
+      { from: { x: 70, y: 70 }, to: { x: 30, y: 70 }, style: 'passe' },
+    ];
+  } else if (isMatch) {
+    // Match 7v7 - formation complète
+    players = [
+      { x: 15, y: 50, number: 1, team: 'défense' }, // GK
+      { x: 30, y: 25, number: 2, team: 'défense' },
+      { x: 30, y: 50, number: 3, team: 'défense' },
+      { x: 30, y: 75, number: 4, team: 'défense' },
+      { x: 50, y: 40, number: 5, team: 'attaque' },
+      { x: 50, y: 60, number: 6, team: 'attaque' },
+      { x: 75, y: 50, number: 7, team: 'attaque' },
+      // Équipe défensive
+      { x: 85, y: 50, number: 8, team: 'défense' },
+      { x: 70, y: 25, number: 9, team: 'défense' },
+      { x: 70, y: 50, number: 10, team: 'défense' },
+      { x: 70, y: 75, number: 11, team: 'défense' },
+    ];
+    movements = [
+      { from: { x: 50, y: 60 }, to: { x: 75, y: 50 }, style: 'passe' },
+      { from: { x: 75, y: 50 }, to: { x: 50, y: 40 }, style: 'dribble' },
+    ];
+  } else if (isDefensive || isPossession) {
+    // Exercice défensif/possession standard - positionner dynamiquement
+    const spacing = 25;
+    const startX = 20;
+    const startY = 25;
+
+    // Attaquants (possession)
+    for (let i = 0; i < Math.min(playerCount, 6); i++) {
+      const row = Math.floor(i / 2);
+      const col = i % 2;
+      players.push({
+        x: startX + col * spacing,
+        y: startY + row * spacing,
+        number: i + 1,
+        team: 'attaque',
+      });
+    }
+
+    // Défenseurs
+    if (isDefensive) {
+      const defCount = Math.max(2, Math.ceil(playerCount / 2));
+      for (let i = 0; i < defCount; i++) {
+        players.push({
+          x: 50 + (i - Math.floor(defCount / 2)) * 15,
+          y: 70,
+          number: playerCount + i + 1,
+          team: 'défense',
+        });
+      }
+
+      // Mouvements de pressing
+      movements = players
+        .filter((p) => p.team === 'attaque')
+        .slice(0, 3)
+        .map((p, i) => ({
+          from: { x: p.x, y: p.y },
+          to: { x: 50 + (i - 1) * 15, y: 70 },
+          style: 'déplacement',
+        }));
+    } else {
+      // Mouvements de passe
+      for (let i = 0; i < players.length - 1; i++) {
+        if (i % 2 === 0) {
+          movements.push({
+            from: { x: players[i].x, y: players[i].y },
+            to: { x: players[i + 1].x, y: players[i + 1].y },
+            style: 'passe',
+          });
+        }
+      }
+    }
+  } else {
+    // Par défaut: formation flexible basée sur le nombre de joueurs
+    players = [
+      { x: 25, y: 25, number: 1, team: 'attaque' },
+      { x: 50, y: 15, number: 2, team: 'attaque' },
+      { x: 75, y: 25, number: 3, team: 'attaque' },
+      { x: 25, y: 50, number: 4, team: 'attaque' },
+      { x: 50, y: 50, number: 5, team: 'attaque' },
+      { x: 75, y: 50, number: 6, team: 'attaque' },
+      { x: 50, y: 75, number: 7, team: 'attaque' },
+    ];
+    movements = [
+      { from: { x: 50, y: 50 }, to: { x: 75, y: 25 }, style: 'passe' },
+      { from: { x: 75, y: 25 }, to: { x: 50, y: 15 }, style: 'passe' },
+    ];
+  }
+
+  return {
+    players: players.slice(0, 11), // Limiter à 11 joueurs max
+    movements,
+  };
 }
 
 
@@ -233,7 +312,7 @@ export function SessionLivret({
   );
 
   const renderExercisePage = (item: (typeof allItems)[0], index: number) => {
-    const diagram = generateTacticalDiagram(theme, item.title);
+    const diagram = generateTacticalDiagram(theme, item.title, item.content);
 
     return (
       <div className="h-screen bg-white flex flex-col p-8 justify-between overflow-hidden">
