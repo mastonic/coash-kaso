@@ -23,10 +23,10 @@ export async function GET(request: NextRequest) {
 
   const leagueName = LEAGUE_NAMES[league] ?? league;
 
-  // gemini-2.0-flash supporte googleSearch (web grounding)
+  // gemini-2.5-flash avec googleSearch grounding
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const model = client.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-flash',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tools: [{ googleSearch: {} } as any],
   });
