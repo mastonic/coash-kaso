@@ -62,17 +62,16 @@ function generateTacticalDiagram(type: string, title: string, content: string = 
   // Analyser le contenu pour extraire les détails
   const contentLower = (title + ' ' + content).toLowerCase();
 
-  // Extraire le nombre de joueurs si spécifié
-  const playerCountMatch = contentLower.match(/(\d+)v(\d+)|\b(\d+)\s*(joueurs?|players?)\b/i);
-  const playerCount = playerCountMatch
-    ? parseInt(playerCountMatch[1] || playerCountMatch[3] || '5')
-    : 5;
+  // Extraire le nombre de joueurs et le format (Nv1, Nv2, etc.)
+  const playerCountMatch = contentLower.match(/(\d+)v(\d+)/i);
+  const defenderCount = playerCountMatch ? parseInt(playerCountMatch[2]) : 0;
+  const attackerCount = playerCountMatch ? parseInt(playerCountMatch[1]) : 0;
 
   // Déterminer le type d'exercice basé sur le contenu
   const isDefensive = contentLower.includes('défense') || contentLower.includes('pressing');
   const isPossession = contentLower.includes('possession') || contentLower.includes('passe');
   const isTransition = contentLower.includes('transition') || contentLower.includes('contre');
-  const isRondo = contentLower.includes('rondo') || contentLower.includes('4v2');
+  const isRondo = contentLower.includes('rondo') || contentLower.includes('carré') || (playerCountMatch && defenderCount <= 2);
   const isMatch = contentLower.includes('match') || contentLower.includes('7v7');
 
   // Générer les positions des joueurs basées sur les détails
@@ -80,20 +79,55 @@ function generateTacticalDiagram(type: string, title: string, content: string = 
   let movements: Movement[] = [];
 
   if (isRondo) {
-    // Rondo 4v2 - cercle de possession
-    players = [
-      { x: 30, y: 30, number: 1, team: 'attaque' },
-      { x: 70, y: 30, number: 2, team: 'attaque' },
-      { x: 70, y: 70, number: 3, team: 'attaque' },
-      { x: 30, y: 70, number: 4, team: 'attaque' },
-      { x: 50, y: 40, number: 5, team: 'défense' },
-      { x: 50, y: 60, number: 6, team: 'défense' },
-    ];
-    movements = [
-      { from: { x: 30, y: 30 }, to: { x: 70, y: 30 }, style: 'passe' },
-      { from: { x: 70, y: 30 }, to: { x: 70, y: 70 }, style: 'passe' },
-      { from: { x: 70, y: 70 }, to: { x: 30, y: 70 }, style: 'passe' },
-    ];
+    // Rondo Nv1 ou Nv2 - carré/cercle de possession avec défenseurs au centre
+    const numAttackers = attackerCount || 4;
+    const numDefenders = defenderCount || 1;
+
+    // Placer les attaquants en cercle/carré
+    const angleStep = (2 * Math.PI) / numAttackers;
+    for (let i = 0; i < numAttackers; i++) {
+      const angle = i * angleStep;
+      const radius = 35;
+      players.push({
+        x: Math.round(50 + radius * Math.cos(angle)),
+        y: Math.round(50 + radius * Math.sin(angle)),
+        number: i + 1,
+        team: 'attaque',
+      });
+    }
+
+    // Placer les défenseurs au centre
+    if (numDefenders === 1) {
+      players.push({
+        x: 50,
+        y: 50,
+        number: numAttackers + 1,
+        team: 'défense',
+      });
+    } else if (numDefenders === 2) {
+      players.push({
+        x: 45,
+        y: 50,
+        number: numAttackers + 1,
+        team: 'défense',
+      });
+      players.push({
+        x: 55,
+        y: 50,
+        number: numAttackers + 2,
+        team: 'défense',
+      });
+    }
+
+    // Mouvements de passe entre attaquants
+    for (let i = 0; i < numAttackers; i++) {
+      const nextIdx = (i + 1) % numAttackers;
+      movements.push({
+        from: { x: players[i].x, y: players[i].y },
+        to: { x: players[nextIdx].x, y: players[nextIdx].y },
+        style: 'passe',
+      });
+    }
   } else if (isMatch) {
     // Match 7v7 - formation complète
     players = [
