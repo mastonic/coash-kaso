@@ -76,8 +76,8 @@ function generateTacticalDiagram(type: string, title: string, content: string = 
   const isMatch = contentLower.includes('match') || contentLower.includes('7v7');
 
   // Générer les positions des joueurs basées sur les détails
-  const players: Player[] = [];
-  const movements: Movement[] = [];
+  let players: Player[] = [];
+  let movements: Movement[] = [];
 
   if (isRondo) {
     // Rondo 4v2 - cercle de possession
