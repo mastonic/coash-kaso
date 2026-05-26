@@ -183,25 +183,35 @@ export function ProSeanceVision() {
             <p className="text-[#9CA3AF] text-xs">Photographiez votre tableau blanc • Analysez la formation et consignes</p>
           </div>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Option 1: Galerie */}
+            <label className="block">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <span className="block w-full bg-[#39FF14] text-[#0A0F0D] font-bold rounded-lg py-4 text-center cursor-pointer hover:scale-105 transition-all active:scale-95">
+                📷 Galerie
+              </span>
+            </label>
 
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            aria-label="Capturer une photo du tableau tactique"
-            className="w-full py-4 bg-gradient-to-r from-[#39FF14] to-[#10B981] text-[#0A0F0D] font-bold rounded-lg hover:scale-105 transition-all duration-300 uppercase group relative overflow-hidden"
-          >
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-30 bg-white transition-opacity" />
-            <span className="relative z-10 flex items-center justify-center gap-2">
-              📷 Capturer l'Écran Tactique
-            </span>
-          </button>
+            {/* Option 2: Caméra */}
+            <label className="block">
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <span className="block w-full bg-[#39FF14] text-[#0A0F0D] font-bold rounded-lg py-4 text-center cursor-pointer hover:scale-105 transition-all active:scale-95">
+                📸 Caméra
+              </span>
+            </label>
+          </div>
         </div>
       )}
 
