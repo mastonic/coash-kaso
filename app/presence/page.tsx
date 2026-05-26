@@ -39,6 +39,7 @@ function PresenceContent() {
   const [identification, setIdentification] = useState<IdentificationResult | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [manualSelection, setManualSelection] = useState<string | null>(null);
+  const [noPhotosWarning, setNoPhotosWarning] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -127,7 +128,7 @@ function PresenceContent() {
 
       const playersWithPhotos = players.filter(p => p.photoUrl);
       if (playersWithPhotos.length === 0) {
-        alert('Aucun joueur avec photo pour la comparaison');
+        setNoPhotosWarning(true);
         return;
       }
 
@@ -222,6 +223,34 @@ function PresenceContent() {
             <p className="text-[#39FF14] font-bold">{attendance.date}</p>
           </div>
         </div>
+
+        {/* No photos warning */}
+        {noPhotosWarning && (
+          <div className="mb-6 bg-[#1a0a0a] border-2 border-red-400 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="text-3xl flex-shrink-0">📸</div>
+            <div className="flex-1">
+              <p className="font-bold text-red-400 mb-1">Aucune photo de joueur enregistrée</p>
+              <p className="text-[#9CA3AF] text-sm">
+                La reconnaissance faciale nécessite une photo de référence pour chaque joueur.
+                Ajoutez les photos depuis la page <strong className="text-[#F3F4F6]">Gestion de l'équipe</strong>.
+              </p>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <a
+                href="/team"
+                className="px-4 py-2 bg-[#39FF14] text-[#0A0F0D] font-black text-sm rounded-lg hover:scale-105 transition-all"
+              >
+                Gérer l'équipe →
+              </a>
+              <button
+                onClick={() => setNoPhotosWarning(false)}
+                className="px-3 py-2 border border-red-400/40 text-red-400 text-sm rounded-lg hover:bg-red-400/10 transition-all"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Main Content */}
         <div className="grid md:grid-cols-3 gap-8 mb-12">
