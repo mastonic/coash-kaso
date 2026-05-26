@@ -108,7 +108,7 @@ export function TacticsCard({
           }`}>
             Objectif
           </p>
-          <p className={`text-xs md:text-sm transition-colors duration-200 line-clamp-2 ${
+          <p className={`text-xs md:text-sm transition-colors duration-200 ${
             isHovered ? 'text-[#10B981]' : 'text-[#F3F4F6]'
           }`}>
             {safeObjective}
