@@ -66,6 +66,7 @@ function generateTacticalDiagram(type: string, title: string, content: string = 
   const playerCountMatch = contentLower.match(/(\d+)v(\d+)/i);
   const defenderCount = playerCountMatch ? parseInt(playerCountMatch[2]) : 0;
   const attackerCount = playerCountMatch ? parseInt(playerCountMatch[1]) : 0;
+  const playerCount = attackerCount + defenderCount || 5; // Total joueurs pour les cas par défaut
 
   // Déterminer le type d'exercice basé sur le contenu
   const isDefensive = contentLower.includes('défense') || contentLower.includes('pressing');
