@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI, DynamicRetrievalMode } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -23,17 +23,12 @@ export async function GET(request: NextRequest) {
 
   const leagueName = LEAGUE_NAMES[league] ?? league;
 
-  // gemini-1.5-flash supporte googleSearchRetrieval dans ce SDK
+  // gemini-2.0-flash supporte googleSearch (web grounding)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const model = client.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    tools: [{
-      googleSearchRetrieval: {
-        dynamicRetrievalConfig: {
-          mode: DynamicRetrievalMode.MODE_DYNAMIC,
-          dynamicThreshold: 0.3,
-        },
-      },
-    }],
+    model: 'gemini-2.0-flash',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    tools: [{ googleSearch: {} } as any],
   });
 
   const prompt = `Recherche sur internet le classement actuel du championnat de football ${leagueName} près de ${city} en France (saison 2024-2025).
