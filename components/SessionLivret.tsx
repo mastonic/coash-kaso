@@ -44,8 +44,21 @@ const AGE_CATEGORIES = {
   Senior: { label: 'Senior', color: '#EF4444', bgColor: 'bg-red-50' },
 };
 
+interface Player {
+  x: number;
+  y: number;
+  number: number;
+  team: 'attaque' | 'défense';
+}
+
+interface Movement {
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  style: 'passe' | 'dribble' | 'déplacement';
+}
+
 // Générer des diagrammes tactiques basés sur les détails de l'exercice
-function generateTacticalDiagram(type: string, title: string, content: string = '') {
+function generateTacticalDiagram(type: string, title: string, content: string = ''): { players: Player[]; movements: Movement[] } {
   // Analyser le contenu pour extraire les détails
   const contentLower = (title + ' ' + content).toLowerCase();
 
@@ -63,8 +76,8 @@ function generateTacticalDiagram(type: string, title: string, content: string = 
   const isMatch = contentLower.includes('match') || contentLower.includes('7v7');
 
   // Générer les positions des joueurs basées sur les détails
-  let players = [];
-  let movements = [];
+  const players: Player[] = [];
+  const movements: Movement[] = [];
 
   if (isRondo) {
     // Rondo 4v2 - cercle de possession
