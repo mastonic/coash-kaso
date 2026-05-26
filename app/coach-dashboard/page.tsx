@@ -16,6 +16,7 @@ interface StandingEntry {
   goalsAgainst: number;
   goalDiff: number;
   form?: string;
+  isAmateur?: boolean;
 }
 
 interface Player {
@@ -62,18 +63,30 @@ function CoachDashboardContent() {
   const [standings, setStandings] = useState<StandingEntry[]>([]);
   const [standingsLoading, setStandingsLoading] = useState(false);
   const [standingsAmateur, setStandingsAmateur] = useState(false);
+  // Amateur: local editable team list
+  const [amateurTeams, setAmateurTeams] = useState<string[]>([]);
+  const [newTeamInput, setNewTeamInput] = useState('');
 
   const leagues = [
-    { id: 'ligue1',    name: 'Ligue 1',     level: 1, teams: '20' },
-    { id: 'ligue2',    name: 'Ligue 2',     level: 2, teams: '20' },
-    { id: 'national',  name: 'National',    level: 3, teams: '18' },
-    { id: 'national2', name: 'National 2',  level: 4, teams: '64' },
-    { id: 'regional',  name: 'Régional 1',  level: 5, teams: 'Var.' },
-    { id: 'regional2', name: 'Régional 2',  level: 6, teams: 'Var.' },
-    { id: 'regional3', name: 'Régional 3',  level: 7, teams: 'Var.' },
-    { id: 'district1', name: 'District 1',  level: 8, teams: 'Var.' },
-    { id: 'district2', name: 'District 2',  level: 9, teams: 'Var.' },
+    { id: 'ligue1',    name: 'Ligue 1',    level: 1, teams: '20' },
+    { id: 'ligue2',    name: 'Ligue 2',    level: 2, teams: '20' },
+    { id: 'national',  name: 'National',   level: 3, teams: '18' },
+    { id: 'national2', name: 'National 2', level: 4, teams: '64' },
+    { id: 'regional',  name: 'Régional 1', level: 5, teams: 'Var.' },
+    { id: 'regional2', name: 'Régional 2', level: 6, teams: 'Var.' },
+    { id: 'regional3', name: 'Régional 3', level: 7, teams: 'Var.' },
+    { id: 'district1', name: 'District 1', level: 8, teams: 'Var.' },
+    { id: 'district2', name: 'District 2', level: 9, teams: 'Var.' },
   ];
+
+  const loadAmateurTeams = useCallback((leagueId: string) => {
+    try {
+      const saved = localStorage.getItem(`mastro_amateur_teams_${leagueId}`);
+      setAmateurTeams(saved ? JSON.parse(saved) : []);
+    } catch {
+      setAmateurTeams([]);
+    }
+  }, []);
 
   const fetchStandings = useCallback(async (leagueId: string) => {
     setStandingsLoading(true);
@@ -86,7 +99,9 @@ function CoachDashboardContent() {
         const data = await res.json();
         if (data.success) {
           setStandings(data.data.standings || []);
-          setStandingsAmateur(data.data.amateur === true);
+          const isAmateur = data.data.amateur === true;
+          setStandingsAmateur(isAmateur);
+          if (isAmateur) loadAmateurTeams(leagueId);
         }
       }
     } catch (err) {
@@ -94,7 +109,7 @@ function CoachDashboardContent() {
     } finally {
       setStandingsLoading(false);
     }
-  }, []);
+  }, [loadAmateurTeams]);
 
   useEffect(() => {
     setMounted(true);
@@ -103,7 +118,6 @@ function CoachDashboardContent() {
     setSelectedLeague(savedLeague);
     fetchStandings(savedLeague);
 
-    // Try to restore selected team from localStorage
     const savedTeam = localStorage.getItem('mastro_selected_team');
     if (savedTeam) {
       try { setSelectedTeam(JSON.parse(savedTeam)); } catch { /* ignore */ }
@@ -131,11 +145,42 @@ function CoachDashboardContent() {
     setSelectedLeague(leagueId);
     localStorage.setItem('mastro_league', leagueId);
     fetchStandings(leagueId);
+    setNewTeamInput('');
   };
 
   const handleTeamSelect = (team: StandingEntry) => {
     setSelectedTeam(team);
     localStorage.setItem('mastro_selected_team', JSON.stringify(team));
+  };
+
+  const addAmateurTeam = () => {
+    const name = newTeamInput.trim();
+    if (!name) return;
+    const updated = [...amateurTeams, name];
+    setAmateurTeams(updated);
+    localStorage.setItem(`mastro_amateur_teams_${selectedLeague}`, JSON.stringify(updated));
+    setNewTeamInput('');
+  };
+
+  const removeAmateurTeam = (index: number) => {
+    const updated = amateurTeams.filter((_, i) => i !== index);
+    setAmateurTeams(updated);
+    localStorage.setItem(`mastro_amateur_teams_${selectedLeague}`, JSON.stringify(updated));
+    if (selectedTeam?.isAmateur && selectedTeam.rank === index + 1) {
+      setSelectedTeam(null);
+      localStorage.removeItem('mastro_selected_team');
+    }
+  };
+
+  const selectAmateurTeam = (name: string, index: number) => {
+    const entry: StandingEntry = {
+      rank: index + 1,
+      team: { name, logo: '' },
+      points: 0, played: 0, won: 0, drawn: 0, lost: 0,
+      goalsFor: 0, goalsAgainst: 0, goalDiff: 0,
+      isAmateur: true,
+    };
+    handleTeamSelect(entry);
   };
 
   if (!mounted) return null;
@@ -162,13 +207,13 @@ function CoachDashboardContent() {
         <div className="grid md:grid-cols-2 gap-6 md:gap-8 mb-10 md:mb-12">
 
           {/* League Selector */}
-          <div className="bg-[#141E1A] border border-[rgba(57,255,20,0.2)] rounded-2xl p-5 md:p-8 flex flex-col">
-            <h2 className="text-xl md:text-2xl font-bold text-[#F3F4F6] mb-4 md:mb-5 flex items-center gap-2">
+          <div className="bg-[#141E1A] border border-[rgba(57,255,20,0.2)] rounded-2xl p-5 md:p-8 flex flex-col gap-5">
+            <h2 className="text-xl md:text-2xl font-bold text-[#F3F4F6] flex items-center gap-2">
               🏅 Sélectionner votre Ligue
             </h2>
 
-            {/* League buttons — scrollable on mobile */}
-            <div className="space-y-2 overflow-y-auto max-h-72 pr-1 mb-5 scrollbar-thin">
+            {/* League buttons */}
+            <div className="space-y-2 overflow-y-auto max-h-60 pr-1 scrollbar-thin">
               {leagues.map((league) => (
                 <button
                   key={league.id}
@@ -182,9 +227,7 @@ function CoachDashboardContent() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-bold text-[#F3F4F6] text-sm">{league.name}</p>
-                      <p className="text-xs text-[#9CA3AF]">
-                        Niv. {league.level} · {league.teams} équipes
-                      </p>
+                      <p className="text-xs text-[#9CA3AF]">Niv. {league.level} · {league.teams} équipes</p>
                     </div>
                     {selectedLeague === league.id && (
                       <span className="text-[#39FF14] font-black text-lg">✓</span>
@@ -194,107 +237,167 @@ function CoachDashboardContent() {
               ))}
             </div>
 
-            {/* Standings or amateur note */}
-            <div className="flex-1">
-              {standingsLoading && (
-                <div className="p-4 rounded-lg border border-[rgba(57,255,20,0.2)] text-center">
-                  <p className="text-[#9CA3AF] text-sm animate-pulse">Chargement du classement…</p>
-                </div>
-              )}
+            {/* Content below league buttons */}
+            {standingsLoading && (
+              <div className="p-4 rounded-lg border border-[rgba(57,255,20,0.2)] text-center">
+                <p className="text-[#9CA3AF] text-sm animate-pulse">Chargement…</p>
+              </div>
+            )}
 
-              {!standingsLoading && standingsAmateur && (
-                <div className="p-4 bg-[rgba(57,255,20,0.08)] border border-[rgba(57,255,20,0.3)] rounded-xl">
-                  <p className="text-xs text-[#9CA3AF] mb-3 font-bold uppercase tracking-wide">
-                    📌 Ligue amateur — données FFF
+            {/* PRO LEAGUE — standings table */}
+            {!standingsLoading && !standingsAmateur && standings.length > 0 && (
+              <div className="flex-1 min-h-0">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-[#9CA3AF] font-bold uppercase tracking-wide">
+                    Classement · {selectedLeagueName}
                   </p>
-                  <div className="space-y-2">
-                    <a href="https://www.fff.fr" target="_blank" rel="noopener noreferrer"
-                      className="text-[#39FF14] hover:text-[#10B981] font-semibold text-sm flex items-center gap-2">
-                      Classement officiel fff.fr →
-                    </a>
-                    <a href="https://epreuves.fff.fr" target="_blank" rel="noopener noreferrer"
-                      className="text-[#39FF14] hover:text-[#10B981] font-semibold text-sm flex items-center gap-2">
-                      Épreuves & résultats →
-                    </a>
-                  </div>
+                  <p className="text-xs text-[#39FF14]">Cliquer pour sélectionner</p>
                 </div>
-              )}
+                <div className="rounded-xl overflow-hidden border border-[rgba(57,255,20,0.2)] overflow-y-auto max-h-80">
+                  <table className="w-full text-xs">
+                    <thead className="sticky top-0">
+                      <tr className="bg-[#141E1A] text-[#9CA3AF] border-b border-[rgba(57,255,20,0.2)]">
+                        <th className="px-2 py-2 text-left w-6">#</th>
+                        <th className="px-2 py-2 text-left">Équipe</th>
+                        <th className="px-2 py-2 text-center">Mj</th>
+                        <th className="px-2 py-2 text-center text-[#10B981]">V</th>
+                        <th className="px-2 py-2 text-center">N</th>
+                        <th className="px-2 py-2 text-center text-red-400">D</th>
+                        <th className="px-2 py-2 text-center font-bold text-[#39FF14]">Pts</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {standings.map((row) => {
+                        const isSelected =
+                          selectedTeam?.rank === row.rank &&
+                          selectedTeam?.team.name === row.team.name;
+                        return (
+                          <tr
+                            key={row.rank}
+                            onClick={() => handleTeamSelect(row)}
+                            className={`border-t border-[rgba(57,255,20,0.1)] cursor-pointer transition-colors ${
+                              isSelected
+                                ? 'bg-[rgba(57,255,20,0.18)]'
+                                : 'hover:bg-[rgba(57,255,20,0.07)]'
+                            }`}
+                          >
+                            <td className={`px-2 py-2 font-bold ${
+                              row.rank <= 3 ? 'text-yellow-400' :
+                              row.rank <= 6 ? 'text-blue-400' :
+                              row.rank > totalTeams - 3 ? 'text-red-400' : 'text-[#9CA3AF]'
+                            }`}>{row.rank}</td>
+                            <td className="px-2 py-2 text-[#F3F4F6]">
+                              <div className="flex items-center gap-1.5">
+                                {row.team.logo && (
+                                  <img src={row.team.logo} alt="" className="w-4 h-4 object-contain flex-shrink-0" />
+                                )}
+                                <span className="truncate max-w-[90px]">{row.team.name}</span>
+                                {isSelected && <span className="text-[#39FF14] text-xs">●</span>}
+                              </div>
+                            </td>
+                            <td className="px-2 py-2 text-center text-[#9CA3AF]">{row.played}</td>
+                            <td className="px-2 py-2 text-center text-[#10B981] font-semibold">{row.won}</td>
+                            <td className="px-2 py-2 text-center text-[#9CA3AF]">{row.drawn}</td>
+                            <td className="px-2 py-2 text-center text-red-400">{row.lost}</td>
+                            <td className="px-2 py-2 text-center font-black text-[#39FF14]">{row.points}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
-              {!standingsLoading && !standingsAmateur && standings.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-[#9CA3AF] font-bold uppercase tracking-wide">
-                      Classement · {selectedLeagueName}
+            {/* AMATEUR LEAGUE — editable team list */}
+            {!standingsLoading && standingsAmateur && (
+              <div className="flex-1 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-[#9CA3AF] font-bold uppercase tracking-wide">
+                    Équipes · {selectedLeagueName}
+                  </p>
+                  <a
+                    href="https://epreuves.fff.fr"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#39FF14] hover:text-[#10B981] text-xs transition-colors"
+                  >
+                    epreuves.fff.fr →
+                  </a>
+                </div>
+
+                {/* Add team input */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newTeamInput}
+                    onChange={e => setNewTeamInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && addAmateurTeam()}
+                    placeholder="Ajouter une équipe…"
+                    className="flex-1 bg-[#0A0F0D] border border-[rgba(57,255,20,0.3)] rounded-lg px-3 py-2 text-sm text-[#F3F4F6] placeholder-[#4B5563] focus:outline-none focus:border-[#39FF14] transition-colors"
+                  />
+                  <button
+                    onClick={addAmateurTeam}
+                    disabled={!newTeamInput.trim()}
+                    className="px-4 py-2 bg-[#39FF14] text-[#0A0F0D] font-black text-sm rounded-lg hover:scale-105 transition-all disabled:opacity-40 disabled:hover:scale-100"
+                  >
+                    +
+                  </button>
+                </div>
+
+                {/* Team list */}
+                {amateurTeams.length > 0 ? (
+                  <div className="rounded-xl border border-[rgba(57,255,20,0.2)] overflow-hidden overflow-y-auto max-h-64">
+                    {amateurTeams.map((name, i) => {
+                      const isSelected =
+                        selectedTeam?.isAmateur &&
+                        selectedTeam.team.name === name;
+                      return (
+                        <div
+                          key={i}
+                          onClick={() => selectAmateurTeam(name, i)}
+                          className={`flex items-center justify-between px-3 py-2.5 border-b border-[rgba(57,255,20,0.1)] cursor-pointer transition-colors last:border-b-0 ${
+                            isSelected
+                              ? 'bg-[rgba(57,255,20,0.18)]'
+                              : 'hover:bg-[rgba(57,255,20,0.07)]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-[#9CA3AF] text-xs w-5 flex-shrink-0">{i + 1}</span>
+                            <span className="text-[#F3F4F6] text-sm truncate">{name}</span>
+                            {isSelected && <span className="text-[#39FF14] text-xs flex-shrink-0">●</span>}
+                          </div>
+                          <button
+                            onClick={e => { e.stopPropagation(); removeAmateurTeam(i); }}
+                            className="text-[#4B5563] hover:text-red-400 transition-colors text-xs ml-2 flex-shrink-0"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-[rgba(57,255,20,0.1)] p-4 text-center">
+                    <p className="text-[#9CA3AF] text-xs">
+                      Saisissez les équipes de votre {selectedLeagueName} pour constituer votre liste
                     </p>
-                    <p className="text-xs text-[#39FF14]">Cliquer pour sélectionner</p>
                   </div>
-                  <div className="rounded-xl overflow-hidden border border-[rgba(57,255,20,0.2)]">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="bg-[rgba(57,255,20,0.08)] text-[#9CA3AF]">
-                          <th className="px-2 py-2 text-left w-6">#</th>
-                          <th className="px-2 py-2 text-left">Équipe</th>
-                          <th className="px-2 py-2 text-center">Mj</th>
-                          <th className="px-2 py-2 text-center text-[#10B981]">V</th>
-                          <th className="px-2 py-2 text-center">N</th>
-                          <th className="px-2 py-2 text-center text-red-400">D</th>
-                          <th className="px-2 py-2 text-center font-bold text-[#39FF14]">Pts</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {standings.map((row) => {
-                          const isSelected =
-                            selectedTeam?.rank === row.rank &&
-                            selectedTeam?.team.name === row.team.name;
-                          return (
-                            <tr
-                              key={row.rank}
-                              onClick={() => handleTeamSelect(row)}
-                              className={`border-t border-[rgba(57,255,20,0.1)] cursor-pointer transition-colors ${
-                                isSelected
-                                  ? 'bg-[rgba(57,255,20,0.18)]'
-                                  : 'hover:bg-[rgba(57,255,20,0.07)]'
-                              }`}
-                            >
-                              <td className={`px-2 py-2 font-bold ${
-                                row.rank <= 3 ? 'text-yellow-400' :
-                                row.rank <= 6 ? 'text-blue-400' :
-                                row.rank > totalTeams - 3 ? 'text-red-400' : 'text-[#9CA3AF]'
-                              }`}>{row.rank}</td>
-                              <td className="px-2 py-2 text-[#F3F4F6]">
-                                <div className="flex items-center gap-1.5">
-                                  {row.team.logo && (
-                                    <img src={row.team.logo} alt="" className="w-4 h-4 object-contain flex-shrink-0" />
-                                  )}
-                                  <span className="truncate max-w-[90px]">{row.team.name}</span>
-                                  {isSelected && <span className="text-[#39FF14] text-xs">●</span>}
-                                </div>
-                              </td>
-                              <td className="px-2 py-2 text-center text-[#9CA3AF]">{row.played}</td>
-                              <td className="px-2 py-2 text-center text-[#10B981] font-semibold">{row.won}</td>
-                              <td className="px-2 py-2 text-center text-[#9CA3AF]">{row.drawn}</td>
-                              <td className="px-2 py-2 text-center text-red-400">{row.lost}</td>
-                              <td className="px-2 py-2 text-center font-black text-[#39FF14]">{row.points}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
+            )}
 
-              {!standingsLoading && !standingsAmateur && standings.length === 0 && (
-                <div className="p-4 bg-[rgba(57,255,20,0.05)] border border-[rgba(57,255,20,0.2)] rounded-xl">
-                  <p className="text-xs text-[#9CA3AF]">
-                    Aucune donnée de classement disponible. Vérifiez votre clé API-Football.
-                  </p>
-                </div>
-              )}
-            </div>
+            {/* Pro league: no data */}
+            {!standingsLoading && !standingsAmateur && standings.length === 0 && (
+              <div className="p-4 bg-[rgba(57,255,20,0.04)] border border-[rgba(57,255,20,0.15)] rounded-xl">
+                <p className="text-xs text-[#9CA3AF]">
+                  Aucune donnée. Vérifiez la clé <code>API_FOOTBALL_KEY</code> dans Vercel.
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Team Stats Box — updates in real-time when a team is selected */}
+          {/* Team Stats Box */}
           <div className="bg-[#141E1A] border border-[rgba(57,255,20,0.2)] rounded-2xl p-5 md:p-8">
             <h2 className="text-xl md:text-2xl font-bold text-[#F3F4F6] mb-5 flex items-center gap-2">
               📊 Votre Équipe
@@ -304,12 +407,16 @@ function CoachDashboardContent() {
               <div className="space-y-4 animate-fade-in">
                 {/* Team identity */}
                 <div className="flex items-center gap-3 pb-4 border-b border-[rgba(57,255,20,0.1)]">
-                  {selectedTeam.team.logo && (
+                  {selectedTeam.team.logo ? (
                     <img
                       src={selectedTeam.team.logo}
                       alt={selectedTeam.team.name}
                       className="w-12 h-12 object-contain"
                     />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-[#39FF14]/10 border border-[#39FF14]/30 flex items-center justify-center text-[#39FF14] font-black text-lg">
+                      {selectedTeam.team.name.charAt(0)}
+                    </div>
                   )}
                   <div>
                     <p className="text-xs text-[#9CA3AF] mb-0.5">{selectedLeagueName}</p>
@@ -319,96 +426,128 @@ function CoachDashboardContent() {
                   </div>
                 </div>
 
-                {/* Position + Points + Mj badges */}
-                <div className="flex gap-2 md:gap-3 flex-wrap">
-                  <div className={`px-3 md:px-4 py-2 rounded-xl border-2 text-center min-w-[72px] ${rankBadgeStyle(selectedTeam.rank, totalTeams)}`}>
-                    <p className="text-xs opacity-60 mb-0.5">Position</p>
-                    <p className="text-2xl font-black leading-none">#{selectedTeam.rank}</p>
-                  </div>
-                  <div className="px-3 md:px-4 py-2 rounded-xl border-2 border-[#39FF14] bg-[rgba(57,255,20,0.1)] text-center min-w-[72px]">
-                    <p className="text-xs text-[#9CA3AF] mb-0.5">Points</p>
-                    <p className="text-2xl font-black text-[#39FF14] leading-none">{selectedTeam.points}</p>
-                  </div>
-                  <div className="px-3 md:px-4 py-2 rounded-xl border-2 border-[rgba(57,255,20,0.2)] bg-[rgba(57,255,20,0.04)] text-center min-w-[72px]">
-                    <p className="text-xs text-[#9CA3AF] mb-0.5">Joués</p>
-                    <p className="text-2xl font-black text-[#F3F4F6] leading-none">{selectedTeam.played}</p>
-                  </div>
-                </div>
-
-                {/* W / D / L badges */}
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="bg-[rgba(16,185,129,0.1)] border border-[#10B981] rounded-xl p-3 text-center">
-                    <p className="text-xs text-[#9CA3AF] mb-1">✅ Victoires</p>
-                    <p className="text-2xl font-black text-[#10B981]">{selectedTeam.won}</p>
-                  </div>
-                  <div className="bg-[rgba(167,139,250,0.1)] border border-purple-400 rounded-xl p-3 text-center">
-                    <p className="text-xs text-[#9CA3AF] mb-1">🤝 Nuls</p>
-                    <p className="text-2xl font-black text-purple-400">{selectedTeam.drawn}</p>
-                  </div>
-                  <div className="bg-[rgba(239,68,68,0.1)] border border-red-400 rounded-xl p-3 text-center">
-                    <p className="text-xs text-[#9CA3AF] mb-1">❌ Défaites</p>
-                    <p className="text-2xl font-black text-red-400">{selectedTeam.lost}</p>
-                  </div>
-                </div>
-
-                {/* Goals + Diff */}
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="bg-[rgba(57,255,20,0.04)] border border-[rgba(57,255,20,0.15)] rounded-xl p-3 text-center">
-                    <p className="text-xs text-[#9CA3AF] mb-1">⚽ Pour</p>
-                    <p className="text-xl font-black text-[#10B981]">{selectedTeam.goalsFor}</p>
-                  </div>
-                  <div className="bg-[rgba(57,255,20,0.04)] border border-[rgba(57,255,20,0.15)] rounded-xl p-3 text-center">
-                    <p className="text-xs text-[#9CA3AF] mb-1">🥅 Contre</p>
-                    <p className="text-xl font-black text-red-400">{selectedTeam.goalsAgainst}</p>
-                  </div>
-                  <div className="bg-[rgba(57,255,20,0.04)] border border-[rgba(57,255,20,0.15)] rounded-xl p-3 text-center">
-                    <p className="text-xs text-[#9CA3AF] mb-1">📊 Diff.</p>
-                    <p className={`text-xl font-black ${
-                      selectedTeam.goalDiff > 0 ? 'text-[#10B981]' :
-                      selectedTeam.goalDiff < 0 ? 'text-red-400' : 'text-[#9CA3AF]'
-                    }`}>
-                      {selectedTeam.goalDiff > 0 ? '+' : ''}{selectedTeam.goalDiff}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Form strip */}
-                {selectedTeam.form && (
-                  <div>
-                    <p className="text-xs text-[#9CA3AF] mb-2 uppercase font-bold tracking-wide">Forme récente</p>
-                    <div className="flex gap-1.5">
-                      {selectedTeam.form.split('').slice(-5).map((r, i) => (
-                        <FormDot key={i} result={r} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Next match if available */}
-                {nextMatch && (
-                  <div className="pt-3 border-t border-[rgba(57,255,20,0.1)]">
-                    <p className="text-xs text-[#9CA3AF] mb-2 uppercase font-bold tracking-wide">Prochain Match</p>
-                    <div className="bg-[rgba(57,255,20,0.1)] p-3 rounded-xl border border-[#39FF14]">
-                      <p className="font-bold text-[#F3F4F6]">vs {nextMatch.opponent}</p>
-                      <p className="text-xs text-[#9CA3AF] mt-1">
-                        📅 {new Date(nextMatch.date).toLocaleDateString('fr-FR')}
+                {selectedTeam.isAmateur ? (
+                  /* Amateur: no real stats */
+                  <div className="space-y-3">
+                    <div className="p-4 bg-[rgba(57,255,20,0.06)] border border-[rgba(57,255,20,0.2)] rounded-xl">
+                      <p className="text-xs text-[#9CA3AF] mb-1 font-bold uppercase tracking-wide">Ligue amateur</p>
+                      <p className="text-sm text-[#9CA3AF]">
+                        Les statistiques détaillées ne sont pas disponibles pour les ligues de district. Consultez{' '}
+                        <a href="https://epreuves.fff.fr" target="_blank" rel="noopener noreferrer"
+                          className="text-[#39FF14] hover:underline">epreuves.fff.fr</a>{' '}
+                        pour les résultats officiels.
                       </p>
                     </div>
+                    {nextMatch && (
+                      <div className="pt-1">
+                        <p className="text-xs text-[#9CA3AF] mb-2 uppercase font-bold tracking-wide">Prochain Match</p>
+                        <div className="bg-[rgba(57,255,20,0.1)] p-3 rounded-xl border border-[#39FF14]">
+                          <p className="font-bold text-[#F3F4F6]">vs {nextMatch.opponent}</p>
+                          <p className="text-xs text-[#9CA3AF] mt-1">
+                            📅 {new Date(nextMatch.date).toLocaleDateString('fr-FR')}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Pro: full stat badges */
+                  <div className="space-y-4">
+                    {/* Position + Points + Joués */}
+                    <div className="flex gap-2 md:gap-3 flex-wrap">
+                      <div className={`px-3 md:px-4 py-2 rounded-xl border-2 text-center min-w-[72px] ${rankBadgeStyle(selectedTeam.rank, totalTeams)}`}>
+                        <p className="text-xs opacity-60 mb-0.5">Position</p>
+                        <p className="text-2xl font-black leading-none">#{selectedTeam.rank}</p>
+                      </div>
+                      <div className="px-3 md:px-4 py-2 rounded-xl border-2 border-[#39FF14] bg-[rgba(57,255,20,0.1)] text-center min-w-[72px]">
+                        <p className="text-xs text-[#9CA3AF] mb-0.5">Points</p>
+                        <p className="text-2xl font-black text-[#39FF14] leading-none">{selectedTeam.points}</p>
+                      </div>
+                      <div className="px-3 md:px-4 py-2 rounded-xl border-2 border-[rgba(57,255,20,0.2)] bg-[rgba(57,255,20,0.04)] text-center min-w-[72px]">
+                        <p className="text-xs text-[#9CA3AF] mb-0.5">Joués</p>
+                        <p className="text-2xl font-black text-[#F3F4F6] leading-none">{selectedTeam.played}</p>
+                      </div>
+                    </div>
+
+                    {/* W / D / L */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-[rgba(16,185,129,0.1)] border border-[#10B981] rounded-xl p-3 text-center">
+                        <p className="text-xs text-[#9CA3AF] mb-1">✅ Victoires</p>
+                        <p className="text-2xl font-black text-[#10B981]">{selectedTeam.won}</p>
+                      </div>
+                      <div className="bg-[rgba(167,139,250,0.1)] border border-purple-400 rounded-xl p-3 text-center">
+                        <p className="text-xs text-[#9CA3AF] mb-1">🤝 Nuls</p>
+                        <p className="text-2xl font-black text-purple-400">{selectedTeam.drawn}</p>
+                      </div>
+                      <div className="bg-[rgba(239,68,68,0.1)] border border-red-400 rounded-xl p-3 text-center">
+                        <p className="text-xs text-[#9CA3AF] mb-1">❌ Défaites</p>
+                        <p className="text-2xl font-black text-red-400">{selectedTeam.lost}</p>
+                      </div>
+                    </div>
+
+                    {/* Buts + Diff */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-[rgba(57,255,20,0.04)] border border-[rgba(57,255,20,0.15)] rounded-xl p-3 text-center">
+                        <p className="text-xs text-[#9CA3AF] mb-1">⚽ Pour</p>
+                        <p className="text-xl font-black text-[#10B981]">{selectedTeam.goalsFor}</p>
+                      </div>
+                      <div className="bg-[rgba(57,255,20,0.04)] border border-[rgba(57,255,20,0.15)] rounded-xl p-3 text-center">
+                        <p className="text-xs text-[#9CA3AF] mb-1">🥅 Contre</p>
+                        <p className="text-xl font-black text-red-400">{selectedTeam.goalsAgainst}</p>
+                      </div>
+                      <div className="bg-[rgba(57,255,20,0.04)] border border-[rgba(57,255,20,0.15)] rounded-xl p-3 text-center">
+                        <p className="text-xs text-[#9CA3AF] mb-1">📊 Diff.</p>
+                        <p className={`text-xl font-black ${
+                          selectedTeam.goalDiff > 0 ? 'text-[#10B981]' :
+                          selectedTeam.goalDiff < 0 ? 'text-red-400' : 'text-[#9CA3AF]'
+                        }`}>
+                          {selectedTeam.goalDiff > 0 ? '+' : ''}{selectedTeam.goalDiff}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Form strip */}
+                    {selectedTeam.form && (
+                      <div>
+                        <p className="text-xs text-[#9CA3AF] mb-2 uppercase font-bold tracking-wide">Forme récente</p>
+                        <div className="flex gap-1.5">
+                          {selectedTeam.form.split('').slice(-5).map((r, i) => (
+                            <FormDot key={i} result={r} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Next match */}
+                    {nextMatch && (
+                      <div className="pt-3 border-t border-[rgba(57,255,20,0.1)]">
+                        <p className="text-xs text-[#9CA3AF] mb-2 uppercase font-bold tracking-wide">Prochain Match</p>
+                        <div className="bg-[rgba(57,255,20,0.1)] p-3 rounded-xl border border-[#39FF14]">
+                          <p className="font-bold text-[#F3F4F6]">vs {nextMatch.opponent}</p>
+                          <p className="text-xs text-[#9CA3AF] mt-1">
+                            📅 {new Date(nextMatch.date).toLocaleDateString('fr-FR')}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 <button
                   onClick={() => { setSelectedTeam(null); localStorage.removeItem('mastro_selected_team'); }}
-                  className="text-xs text-[#9CA3AF] hover:text-red-400 transition-colors mt-1"
+                  className="text-xs text-[#4B5563] hover:text-red-400 transition-colors mt-1"
                 >
                   × Réinitialiser la sélection
                 </button>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full min-h-[220px] text-center gap-4">
-                <div className="text-5xl opacity-30">👆</div>
-                <p className="text-[#9CA3AF] text-sm max-w-[200px]">
-                  Sélectionnez une équipe dans le classement pour voir ses statistiques en temps réel
+                <div className="text-5xl opacity-20">👆</div>
+                <p className="text-[#9CA3AF] text-sm max-w-[220px]">
+                  {standingsAmateur
+                    ? 'Ajoutez des équipes et cliquez dessus pour les sélectionner'
+                    : 'Cliquez une équipe dans le classement pour voir ses statistiques'
+                  }
                 </p>
                 {nextMatch && (
                   <div className="w-full pt-4 border-t border-[rgba(57,255,20,0.1)]">
@@ -479,7 +618,7 @@ function CoachDashboardContent() {
           <h2 className="text-xl md:text-2xl font-bold text-[#F3F4F6] mb-6">⚡ Fonctionnalités ProSéance</h2>
           <div className="grid md:grid-cols-2 gap-5">
             {[
-              { icon: '🎬', title: 'Analyse Vidéo', desc: 'Analysez vos matchs automatiquement avec l\'IA' },
+              { icon: '🎬', title: 'Analyse Vidéo', desc: "Analysez vos matchs automatiquement avec l'IA" },
               { icon: '⚡', title: 'Génération Séances', desc: 'Créez des entraînements en 3 secondes' },
               { icon: '📊', title: 'Suivi Joueurs', desc: 'Suivez la performance de chaque joueur' },
               { icon: '📅', title: 'Programmation', desc: 'Programmez votre saison automatiquement' },
