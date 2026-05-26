@@ -167,6 +167,11 @@ export async function generateSession(
   const prompt = `Tu es un expert en coaching football (école ${school}).
 Génère une séance d'entraînement complète sur le thème "${theme}", charge "${load}", ${playerCount} joueurs.
 
+⚠️ LANGUE OBLIGATOIRE : TOUT LE TEXTE DOIT ÊTRE EN FRANÇAIS
+- Tous les champs (title, objective, content, setup, technique, fieldSetup) sont UNIQUEMENT EN FRANÇAIS
+- PAS de traduction dans la langue de l'école
+- Même si school="${school}", le contenu reste 100% FRANÇAIS
+
 RÈGLE ABSOLUE POUR LE CHAMP "illustration" :
 - TOUJOURS un JSON stringifié (string entre guillemets dans le JSON global)
 - JAMAIS de texte ASCII, JAMAIS de caractères comme +, -, |, O, X
