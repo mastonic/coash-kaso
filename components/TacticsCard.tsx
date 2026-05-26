@@ -76,7 +76,7 @@ export function TacticsCard({
           <div className={`text-2xl md:text-3xl mb-1 md:mb-2 transition-transform duration-300 ${isHovered ? 'scale-110 animate-pop' : ''}`}>
             {typeIcons[type]}
           </div>
-          <h3 className="text-[#F3F4F6] font-bold text-sm md:text-lg group-hover:text-[#39FF14] transition-colors duration-200 line-clamp-2">
+          <h3 className="text-[#F3F4F6] font-bold text-sm md:text-lg group-hover:text-[#39FF14] transition-colors duration-200 ">
             {safeTitle}
           </h3>
         </div>
@@ -121,7 +121,7 @@ export function TacticsCard({
           }`}>
             Contenu
           </p>
-          <p className={`text-xs md:text-sm transition-colors duration-200 line-clamp-3 md:line-clamp-none ${
+          <p className={`text-xs md:text-sm transition-colors duration-200 ${
             isHovered ? 'text-[#10B981]' : 'text-[#9CA3AF]'
           }`}>
             {safeContent}
