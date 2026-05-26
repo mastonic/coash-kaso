@@ -42,7 +42,8 @@ export async function GET(request: NextRequest) {
     const season = searchParams.get('season') || new Date().getFullYear().toString();
 
     // Amateur leagues — no RapidAPI coverage
-    if (league === 'national2' || league === 'regional') {
+    const AMATEUR_LEAGUES = ['national2', 'regional', 'regional2', 'regional3', 'district1', 'district2'];
+    if (AMATEUR_LEAGUES.includes(league)) {
       return NextResponse.json({
         success: true,
         data: {
