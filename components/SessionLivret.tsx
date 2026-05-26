@@ -68,6 +68,18 @@ function generateTacticalDiagram(type: string, title: string, content: string = 
   const attackerCount = playerCountMatch ? parseInt(playerCountMatch[1]) : 0;
   const playerCount = attackerCount + defenderCount || 5; // Total joueurs pour les cas par défaut
 
+  // Extraire la taille du terrain (ex: "5-6 mètres", "10 m", "15 yards")
+  const terrainSizeMatch = contentLower.match(/(\d+)\s*(?:-\s*(\d+))?\s*(?:m|mètres?|yards?|feet?)/i);
+  let terrainSize = 5; // Défaut: 5 mètres
+  if (terrainSizeMatch) {
+    const firstSize = parseInt(terrainSizeMatch[1]);
+    const secondSize = terrainSizeMatch[2] ? parseInt(terrainSizeMatch[2]) : firstSize;
+    terrainSize = (firstSize + secondSize) / 2; // Prendre la moyenne si c'est une plage
+  }
+  // Adapter le radius du cercle en fonction de la taille du terrain (en pixels)
+  // Un terrain de 10m = radius de ~40px, 5m = ~20px
+  const radiusScale = Math.min(40, (terrainSize / 10) * 40);
+
   // Déterminer le type d'exercice basé sur le contenu
   const isDefensive = contentLower.includes('défense') || contentLower.includes('pressing');
   const isPossession = contentLower.includes('possession') || contentLower.includes('passe');
@@ -84,11 +96,11 @@ function generateTacticalDiagram(type: string, title: string, content: string = 
     const numAttackers = attackerCount || 4;
     const numDefenders = defenderCount || 1;
 
-    // Placer les attaquants en cercle/carré
+    // Placer les attaquants en cercle/carré (adapté à la taille du terrain)
     const angleStep = (2 * Math.PI) / numAttackers;
+    const radius = radiusScale; // Utiliser le radius adapté à la taille du terrain
     for (let i = 0; i < numAttackers; i++) {
       const angle = i * angleStep;
-      const radius = 35;
       players.push({
         x: Math.round(50 + radius * Math.cos(angle)),
         y: Math.round(50 + radius * Math.sin(angle)),
