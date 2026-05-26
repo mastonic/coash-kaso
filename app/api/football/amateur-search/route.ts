@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
   const model = client.getGenerativeModel({
     model: 'gemini-2.5-flash',
-    tools: [{ googleSearch: {} }],
+    tools: [{ googleSearchRetrieval: {} }],
   });
 
   const prompt = `Cherche le classement actuel du championnat ${leagueName} de football amateur en ${region}, France (saison en cours).

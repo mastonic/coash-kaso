@@ -13,9 +13,11 @@ export interface AmateurTeam {
   points?: number;
 }
 
-function parseNumbers(cells: cheerio.Cheerio, $: cheerio.Root): number[] {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseNumbers(cells: any, $: cheerio.CheerioAPI): number[] {
   const nums: number[] = [];
-  cells.each((_, cell) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cells.each((_: number, cell: any) => {
     const n = parseInt($(cell).text().trim(), 10);
     if (!isNaN(n)) nums.push(n);
   });
@@ -24,13 +26,14 @@ function parseNumbers(cells: cheerio.Cheerio, $: cheerio.Root): number[] {
 
 function extractTeams($: cheerio.CheerioAPI, selector: string): AmateurTeam[] {
   const teams: AmateurTeam[] = [];
-  $(selector).each((idx, row) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  $(selector).each((idx: number, row: any) => {
     const cells = $(row).find('td');
     if (cells.length < 2) return;
 
-    // Find team name: longest non-numeric, non-empty text cell
     let teamName = '';
-    cells.each((_, cell) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    cells.each((_: number, cell: any) => {
       const text = $(cell).text().trim().replace(/\s+/g, ' ');
       if (
         text.length > teamName.length &&
@@ -114,7 +117,7 @@ export async function GET(request: NextRequest) {
       }, { status: 422 });
     }
 
-    const $ = cheerio.load(html) as cheerio.CheerioAPI;
+    const $ = cheerio.load(html);
 
     // Try selectors from most specific to most generic
     const selectors = [
