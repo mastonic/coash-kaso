@@ -1,132 +1,145 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
 
-interface AmateurFixture {
-  id: string;
-  date: string;
-  homeTeam: string;
-  awayTeam: string;
-  division: string;
-  group: string;
-  status: 'scheduled' | 'finished' | 'postponed';
-  score?: {
-    home: number;
-    away: number;
-  };
-  referee?: string;
-  venue?: string;
+export interface AmateurTeam {
+  rank: number;
+  name: string;
+  played?: number;
+  won?: number;
+  drawn?: number;
+  lost?: number;
+  goalsFor?: number;
+  goalsAgainst?: number;
+  points?: number;
 }
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const division = searchParams.get('division') || 'D1'; // D1, D2, D3, D4, etc.
-    const group = searchParams.get('group'); // Optional group filter
+function parseNumbers(cells: cheerio.Cheerio, $: cheerio.Root): number[] {
+  const nums: number[] = [];
+  cells.each((_, cell) => {
+    const n = parseInt($(cell).text().trim(), 10);
+    if (!isNaN(n)) nums.push(n);
+  });
+  return nums;
+}
 
-    // Fetch epreuves.fff.fr data
-    // Note: This is a simplified example - actual scraping may need adjustments
-    // based on the current HTML structure of epreuves.fff.fr
+function extractTeams($: cheerio.CheerioAPI, selector: string): AmateurTeam[] {
+  const teams: AmateurTeam[] = [];
+  $(selector).each((idx, row) => {
+    const cells = $(row).find('td');
+    if (cells.length < 2) return;
 
-    const epreuvesUrl = `https://epreuves.fff.fr/pages/${division}`;
-
-    const response = await fetch(epreuvesUrl, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-    });
-
-    if (!response.ok) {
-      // Return empty fixtures if the page is not accessible
-      // In production, you might want to cache this or use a fallback
-      return NextResponse.json({
-        success: true,
-        data: {
-          division,
-          group: group || 'all',
-          fixtures: [],
-          count: 0,
-          note: 'epreuves.fff.fr temporarily unavailable - try again later',
-        },
-      });
-    }
-
-    const html = await response.text();
-    const $ = cheerio.load(html);
-
-    const fixtures: AmateurFixture[] = [];
-
-    // Parse fixtures from the HTML
-    // This selector may need to be adjusted based on actual HTML structure
-    $('table tbody tr').each((index, row) => {
-      try {
-        const cells = $(row).find('td');
-        if (cells.length < 5) return;
-
-        const dateStr = $(cells[0]).text().trim();
-        const homeTeam = $(cells[1]).text().trim();
-        const awayTeam = $(cells[2]).text().trim();
-        const scoreStr = $(cells[3]).text().trim();
-        const groupText = $(cells[4]).text().trim();
-
-        // Skip if no home/away team
-        if (!homeTeam || !awayTeam) return;
-
-        // Filter by group if specified
-        if (group && !groupText.includes(group)) return;
-
-        // Parse score
-        let status: 'scheduled' | 'finished' | 'postponed' = 'scheduled';
-        let score: { home: number; away: number } | undefined;
-
-        if (scoreStr.includes('-')) {
-          const [h, a] = scoreStr.split('-').map((s) => parseInt(s.trim()));
-          if (!isNaN(h) && !isNaN(a)) {
-            score = { home: h, away: a };
-            status = 'finished';
-          }
-        } else if (scoreStr.toLowerCase().includes('reporté') || scoreStr.toLowerCase().includes('ajour')) {
-          status = 'postponed';
-        }
-
-        fixtures.push({
-          id: `${division}-${index}-${homeTeam}-${awayTeam}`,
-          date: dateStr,
-          homeTeam,
-          awayTeam,
-          division,
-          group: groupText,
-          status,
-          score,
-        });
-      } catch (e) {
-        // Skip rows with parsing errors
+    // Find team name: longest non-numeric, non-empty text cell
+    let teamName = '';
+    cells.each((_, cell) => {
+      const text = $(cell).text().trim().replace(/\s+/g, ' ');
+      if (
+        text.length > teamName.length &&
+        text.length > 2 &&
+        isNaN(Number(text)) &&
+        !/^\d{1,2}[/\-]\d{1,2}/.test(text) // skip date-like
+      ) {
+        teamName = text;
       }
     });
 
+    if (!teamName) return;
+
+    // Collect numbers in order (rank, Mj, V, N, D, Bp, Bc, Pts or similar)
+    const nums = parseNumbers(cells, $);
+
+    teams.push({
+      rank: nums[0] ?? idx + 1,
+      name: teamName,
+      played: nums[1],
+      won: nums[2],
+      drawn: nums[3],
+      lost: nums[4],
+      goalsFor: nums[5],
+      goalsAgainst: nums[6],
+      points: nums[nums.length - 1] ?? nums[7],
+    });
+  });
+  return teams;
+}
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const rawUrl = searchParams.get('url');
+
+  if (!rawUrl) {
+    return NextResponse.json({ success: false, error: 'Paramètre url manquant' }, { status: 400 });
+  }
+
+  // Basic SSRF guard: only allow fff.fr domains
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return NextResponse.json({ success: false, error: 'URL invalide' }, { status: 400 });
+  }
+
+  if (!parsed.hostname.endsWith('fff.fr')) {
+    return NextResponse.json(
+      { success: false, error: 'URL non autorisée — seules les pages fff.fr sont acceptées' },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const response = await fetch(rawUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'fr-FR,fr;q=0.9',
+      },
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { success: false, error: `Site non accessible (HTTP ${response.status})` },
+        { status: 502 }
+      );
+    }
+
+    const html = await response.text();
+
+    // Detect JS-only page (no real content)
+    if (html.length < 2000 || (html.match(/<td/gi) ?? []).length === 0) {
+      return NextResponse.json({
+        success: false,
+        jsRendered: true,
+        error: 'La page nécessite JavaScript — consultez directement epreuves.fff.fr',
+      }, { status: 422 });
+    }
+
+    const $ = cheerio.load(html) as cheerio.CheerioAPI;
+
+    // Try selectors from most specific to most generic
+    const selectors = [
+      'table.classement tbody tr',
+      'table.ranking tbody tr',
+      '.classement table tbody tr',
+      '.poule-classement tbody tr',
+      'table tbody tr',
+    ];
+
+    let teams: AmateurTeam[] = [];
+    for (const sel of selectors) {
+      teams = extractTeams($, sel);
+      if (teams.length >= 2) break;
+    }
+
+    // Re-rank sequentially if ranks are missing/wrong
+    teams = teams.map((t, i) => ({ ...t, rank: i + 1 }));
+
     return NextResponse.json({
       success: true,
-      data: {
-        division,
-        group: group || 'all',
-        fixtures,
-        count: fixtures.length,
-        source: 'epreuves.fff.fr',
-      },
+      data: { teams, count: teams.length, source: rawUrl },
     });
   } catch (error) {
-    console.error('Amateur football error:', error);
-
-    // Return empty fixtures on error instead of failing
-    return NextResponse.json({
-      success: true,
-      data: {
-        division: 'unknown',
-        group: 'all',
-        fixtures: [],
-        count: 0,
-        error: error instanceof Error ? error.message : 'Failed to fetch amateur fixtures',
-      },
-    });
+    const msg = error instanceof Error ? error.message : 'Erreur inconnue';
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
