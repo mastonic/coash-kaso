@@ -1,0 +1,7 @@
+.firebase/
+node_modules/
+.next/
+.git-rewrite/
+*.node
+.env
+.env.local

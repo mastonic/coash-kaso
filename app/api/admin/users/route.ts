@@ -1,0 +1,66 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET(request: NextRequest) {
+  try {
+    const admin = await import('firebase-admin');
+
+    if (!admin.apps.length) {
+      const serviceAccount = {
+        project_id: process.env.FIREBASE_PROJECT_ID,
+        private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        client_email: process.env.FIREBASE_CLIENT_EMAIL,
+      };
+
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount as any),
+      });
+    }
+
+    const db = admin.firestore();
+
+    // Get all leads
+    const leadsSnapshot = await db.collection('leads').orderBy('timestamp', 'desc').get();
+    const leads = leadsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      email: doc.data().email,
+      category: doc.data().category,
+      timestamp: doc.data().timestamp,
+    }));
+
+    // Get all users with access
+    const usersSnapshot = await db.collection('users_access').get();
+    const accessMap = new Map<string, any>();
+    usersSnapshot.docs.forEach(doc => {
+      accessMap.set(doc.id, {
+        status: doc.data().status,
+        activatedAt: doc.data().activatedAt,
+      });
+    });
+
+    // Merge leads with access status
+    const usersData = leads.map(lead => ({
+      ...lead,
+      access: accessMap.get(lead.email) || { status: 'pending', activatedAt: null },
+    }));
+
+    // Calculate stats
+    const activeCount = usersData.filter(u => u.access.status === 'active').length;
+    const totalCount = usersData.length;
+
+    return NextResponse.json({
+      success: true,
+      users: usersData,
+      stats: {
+        total: totalCount,
+        active: activeCount,
+        pending: totalCount - activeCount,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error fetching users:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to fetch users' },
+      { status: 500 }
+    );
+  }
+}
