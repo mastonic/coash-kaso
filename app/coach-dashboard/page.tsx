@@ -1,8 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ToolsNav } from '@/components/ToolsNav';
 import { AccessGate } from '@/components/AccessGate';
+
+interface StandingEntry {
+  rank: number;
+  team: { name: string; logo: string };
+  points: number;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalDiff: number;
+}
 
 interface TeamInfo {
   name: string;
@@ -34,6 +45,9 @@ function CoachDashboardContent() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [mounted, setMounted] = useState(false);
   const [hoveredStat, setHoveredStat] = useState<string | null>(null);
+  const [standings, setStandings] = useState<StandingEntry[]>([]);
+  const [standingsLoading, setStandingsLoading] = useState(false);
+  const [standingsAmateur, setStandingsAmateur] = useState(false);
 
   const leagues = [
     { id: 'ligue1', name: 'Ligue 1', level: 1, teams: 20 },
@@ -43,28 +57,37 @@ function CoachDashboardContent() {
     { id: 'regional', name: 'Régional 1', level: 5, teams: 'Nombreux' },
   ];
 
-  const stats = [
-    { icon: '🏆', label: 'Classement', value: '#12', color: 'text-yellow-400' },
-    { icon: '⚽', label: 'Matches', value: '28/38', color: 'text-green-400' },
-    { icon: '✅', label: 'Victoires', value: '16', color: 'text-blue-400' },
-    { icon: '🤝', label: 'Nuls', value: '8', color: 'text-purple-400' },
-    { icon: '❌', label: 'Défaites', value: '4', color: 'text-red-400' },
-    { icon: '📊', label: 'Points', value: '56', color: 'text-[#39FF14]' },
-  ];
+  const fetchStandings = useCallback(async (leagueId: string) => {
+    setStandingsLoading(true);
+    setStandings([]);
+    setStandingsAmateur(false);
+    try {
+      const res = await fetch(`/api/football/standings?league=${leagueId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setStandings(data.data.standings || []);
+          setStandingsAmateur(data.data.amateur === true);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading standings:', err);
+    } finally {
+      setStandingsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     setMounted(true);
 
-    // Load saved league preference
     const savedLeague = localStorage.getItem('mastro_league');
-    if (savedLeague) {
-      setSelectedLeague(savedLeague);
-    }
+    const initialLeague = savedLeague || 'ligue1';
+    setSelectedLeague(initialLeague);
+    fetchStandings(initialLeague);
 
     const email = localStorage.getItem('mastro_user');
     if (!email) return;
 
-    // Charger les joueurs de l'équipe
     const loadPlayers = async () => {
       try {
         const res = await fetch(`/api/team?email=${encodeURIComponent(email)}`);
@@ -77,7 +100,6 @@ function CoachDashboardContent() {
       }
     };
 
-    // Charger le prochain match
     const loadNextMatch = async () => {
       try {
         const today = new Date().toISOString().split('T')[0];
@@ -108,7 +130,6 @@ function CoachDashboardContent() {
       }
     };
 
-    // Données statiques pour la démonstration
     setTeamInfo({
       name: 'Mon Équipe',
       league: 'Ligue 1',
@@ -122,9 +143,17 @@ function CoachDashboardContent() {
 
     loadPlayers();
     loadNextMatch();
-  }, []);
+  }, [fetchStandings]);
+
+  const handleLeagueSelect = (leagueId: string) => {
+    setSelectedLeague(leagueId);
+    localStorage.setItem('mastro_league', leagueId);
+    fetchStandings(leagueId);
+  };
 
   if (!mounted) return null;
+
+  const selectedLeagueName = leagues.find(l => l.id === selectedLeague)?.name || selectedLeague;
 
   return (
     <main className="min-h-screen bg-[#0A0F0D]">
@@ -144,7 +173,7 @@ function CoachDashboardContent() {
         {/* League Selection */}
         <div className="grid md:grid-cols-2 gap-8 mb-12">
           {/* League Selector */}
-          <div className="bg-[#141E1A] border border-[rgba(57,255,20,0.2)] rounded-2xl p-8">
+          <div className="bg-[#141E1A] border border-[rgba(57,255,20,0.2)] rounded-2xl p-6 md:p-8">
             <h2 className="text-2xl font-bold text-[#F3F4F6] mb-6 flex items-center gap-2">
               🏅 Sélectionner votre Ligue
             </h2>
@@ -152,10 +181,7 @@ function CoachDashboardContent() {
               {leagues.map((league) => (
                 <button
                   key={league.id}
-                  onClick={() => {
-                    setSelectedLeague(league.id);
-                    localStorage.setItem('mastro_league', league.id);
-                  }}
+                  onClick={() => handleLeagueSelect(league.id)}
                   className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
                     selectedLeague === league.id
                       ? 'border-[#39FF14] bg-[rgba(57,255,20,0.15)]'
@@ -176,21 +202,112 @@ function CoachDashboardContent() {
                 </button>
               ))}
             </div>
-            <div className="mt-6 p-4 bg-[rgba(57,255,20,0.1)] border border-[#39FF14] rounded-lg">
-              <p className="text-xs text-[#9CA3AF] mb-2">📌 Info FFF:</p>
-              <a
-                href="https://www.fff.fr"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#39FF14] hover:text-[#10B981] font-semibold text-sm flex items-center gap-2"
-              >
-                Consulter le site officiel FFF →
-              </a>
+
+            {/* Standings or amateur note */}
+            <div className="mt-6">
+              {standingsLoading && (
+                <div className="p-4 bg-[rgba(57,255,20,0.05)] border border-[rgba(57,255,20,0.2)] rounded-lg text-center">
+                  <p className="text-[#9CA3AF] text-sm animate-pulse">Chargement du classement…</p>
+                </div>
+              )}
+
+              {!standingsLoading && standingsAmateur && (
+                <div className="p-4 bg-[rgba(57,255,20,0.1)] border border-[#39FF14] rounded-lg">
+                  <p className="text-xs text-[#9CA3AF] mb-2">📌 Ligue amateur :</p>
+                  <a
+                    href="https://www.fff.fr"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#39FF14] hover:text-[#10B981] font-semibold text-sm flex items-center gap-2"
+                  >
+                    Consulter le classement sur fff.fr →
+                  </a>
+                  <a
+                    href="https://epreuves.fff.fr"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#39FF14] hover:text-[#10B981] font-semibold text-sm flex items-center gap-2 mt-2"
+                  >
+                    Voir les épreuves FFF →
+                  </a>
+                </div>
+              )}
+
+              {!standingsLoading && !standingsAmateur && standings.length > 0 && (
+                <div>
+                  <p className="text-xs text-[#9CA3AF] font-bold uppercase mb-2">
+                    Classement — {selectedLeagueName}
+                  </p>
+                  <div className="rounded-xl overflow-hidden border border-[rgba(57,255,20,0.2)]">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-[rgba(57,255,20,0.08)] text-[#9CA3AF]">
+                          <th className="px-2 py-2 text-left w-7">#</th>
+                          <th className="px-2 py-2 text-left">Équipe</th>
+                          <th className="px-2 py-2 text-center">Mj</th>
+                          <th className="px-2 py-2 text-center">V</th>
+                          <th className="px-2 py-2 text-center">N</th>
+                          <th className="px-2 py-2 text-center">D</th>
+                          <th className="px-2 py-2 text-center font-bold text-[#39FF14]">Pts</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {standings.slice(0, 10).map((row, i) => (
+                          <tr
+                            key={row.rank}
+                            className={`border-t border-[rgba(57,255,20,0.1)] ${
+                              i % 2 === 0 ? 'bg-[rgba(255,255,255,0.01)]' : ''
+                            }`}
+                          >
+                            <td className="px-2 py-2 text-[#9CA3AF] font-bold">{row.rank}</td>
+                            <td className="px-2 py-2 text-[#F3F4F6] truncate max-w-[110px]">
+                              <div className="flex items-center gap-1.5">
+                                {row.team.logo && (
+                                  <img
+                                    src={row.team.logo}
+                                    alt=""
+                                    className="w-4 h-4 object-contain flex-shrink-0"
+                                  />
+                                )}
+                                <span className="truncate">{row.team.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-2 py-2 text-center text-[#9CA3AF]">{row.played}</td>
+                            <td className="px-2 py-2 text-center text-[#10B981]">{row.won}</td>
+                            <td className="px-2 py-2 text-center text-[#9CA3AF]">{row.drawn}</td>
+                            <td className="px-2 py-2 text-center text-red-400">{row.lost}</td>
+                            <td className="px-2 py-2 text-center font-black text-[#39FF14]">{row.points}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {standings.length > 10 && (
+                      <div className="px-3 py-2 text-center text-[#9CA3AF] text-xs bg-[rgba(57,255,20,0.03)]">
+                        +{standings.length - 10} équipes
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {!standingsLoading && !standingsAmateur && standings.length === 0 && (
+                <div className="p-4 bg-[rgba(57,255,20,0.1)] border border-[#39FF14] rounded-lg">
+                  <p className="text-xs text-[#9CA3AF] mb-2">📌 Info FFF :</p>
+                  <a
+                    href="https://www.fff.fr"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#39FF14] hover:text-[#10B981] font-semibold text-sm flex items-center gap-2"
+                  >
+                    Consulter le site officiel FFF →
+                  </a>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Quick Stats */}
-          <div className="bg-[#141E1A] border border-[rgba(57,255,20,0.2)] rounded-2xl p-8">
+          <div className="bg-[#141E1A] border border-[rgba(57,255,20,0.2)] rounded-2xl p-6 md:p-8">
             <h2 className="text-2xl font-bold text-[#F3F4F6] mb-6 flex items-center gap-2">
               📊 Votre Équipe
             </h2>
@@ -210,9 +327,23 @@ function CoachDashboardContent() {
                     <p className="text-3xl font-black text-[#10B981]">{teamInfo.points}</p>
                   </div>
                 </div>
+                <div className="grid grid-cols-3 gap-3 pt-2">
+                  <div className="bg-[rgba(57,255,20,0.05)] rounded-lg p-3 text-center border border-[rgba(57,255,20,0.1)]">
+                    <p className="text-[#9CA3AF] text-xs mb-1">Victoires</p>
+                    <p className="text-xl font-black text-[#10B981]">{teamInfo.wins}</p>
+                  </div>
+                  <div className="bg-[rgba(57,255,20,0.05)] rounded-lg p-3 text-center border border-[rgba(57,255,20,0.1)]">
+                    <p className="text-[#9CA3AF] text-xs mb-1">Nuls</p>
+                    <p className="text-xl font-black text-purple-400">{teamInfo.draws}</p>
+                  </div>
+                  <div className="bg-[rgba(57,255,20,0.05)] rounded-lg p-3 text-center border border-[rgba(57,255,20,0.1)]">
+                    <p className="text-[#9CA3AF] text-xs mb-1">Défaites</p>
+                    <p className="text-xl font-black text-red-400">{teamInfo.losses}</p>
+                  </div>
+                </div>
                 <div className="pt-4 border-t border-[rgba(57,255,20,0.1)]">
                   <p className="text-[#9CA3AF] text-xs mb-3">Prochain Match</p>
-                  {teamInfo.nextMatch && (
+                  {teamInfo.nextMatch ? (
                     <div className="bg-[rgba(57,255,20,0.1)] p-3 rounded-lg border border-[#39FF14]">
                       <p className="font-bold text-[#F3F4F6]">
                         vs {teamInfo.nextMatch.opponent}
@@ -221,6 +352,8 @@ function CoachDashboardContent() {
                         📅 {new Date(teamInfo.nextMatch.date).toLocaleDateString('fr-FR')}
                       </p>
                     </div>
+                  ) : (
+                    <p className="text-[#9CA3AF] text-sm italic">Aucun match programmé</p>
                   )}
                 </div>
               </div>
@@ -230,19 +363,18 @@ function CoachDashboardContent() {
 
         {/* Statistics Grid */}
         <div className="mb-12">
-          <h2 className="text-2xl font-bold text-[#F3F4F6] mb-6">📈 Statistiques</h2>
+          <h2 className="text-2xl font-bold text-[#F3F4F6] mb-6">📈 Statistiques de saison</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {stats.map((stat, idx) => {
+            {[
+              { icon: '🏆', label: 'Classement', value: `#${teamInfo?.position ?? '—'}`, color: 'text-yellow-400', detail: `${teamInfo?.position ?? '—'} sur 20 équipes` },
+              { icon: '⚽', label: 'Matches joués', value: `${(teamInfo?.wins ?? 0) + (teamInfo?.draws ?? 0) + (teamInfo?.losses ?? 0)}`, color: 'text-green-400', detail: 'Total de la saison' },
+              { icon: '✅', label: 'Victoires', value: `${teamInfo?.wins ?? '—'}`, color: 'text-blue-400', detail: 'Matchs gagnés' },
+              { icon: '🤝', label: 'Nuls', value: `${teamInfo?.draws ?? '—'}`, color: 'text-purple-400', detail: 'Matchs nuls' },
+              { icon: '❌', label: 'Défaites', value: `${teamInfo?.losses ?? '—'}`, color: 'text-red-400', detail: 'Matchs perdus' },
+              { icon: '📊', label: 'Points', value: `${teamInfo?.points ?? '—'}`, color: 'text-[#39FF14]', detail: teamInfo ? `${(teamInfo.points / Math.max((teamInfo.wins + teamInfo.draws + teamInfo.losses), 1)).toFixed(1)} pts/match` : '' },
+            ].map((stat, idx) => {
               const statKey = `stat-${idx}`;
               const isHovered = hoveredStat === statKey;
-              const details: { [key: string]: string } = {
-                'stat-0': 'Classement: #12 sur 20',
-                'stat-1': '28 matches joués / 38 en saison',
-                'stat-2': 'Dernière victoire: 22/05',
-                'stat-3': 'Série: 2 matchs consécutifs',
-                'stat-4': 'Dernière défaite: 15/05',
-                'stat-5': 'Moyenne: 2,0 pts/match',
-              };
               return (
                 <div
                   key={idx}
@@ -255,7 +387,7 @@ function CoachDashboardContent() {
                   <p className={`text-3xl font-black ${stat.color} mb-3`}>{stat.value}</p>
                   {isHovered && (
                     <div className="text-xs text-[#9CA3AF] pt-3 border-t border-[rgba(57,255,20,0.1)] animate-fade-in">
-                      {details[statKey]}
+                      {stat.detail}
                     </div>
                   )}
                 </div>
