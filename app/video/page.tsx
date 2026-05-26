@@ -125,21 +125,43 @@ function PlayerVideoIdentification() {
               {playersWithPhotos.length} joueur(s) disponible(s) pour la comparaison
             </p>
 
-            <label className="block">
-              <input
-                type="file"
-                accept="video/*"
-                onChange={(e) => {
-                  const file = e.currentTarget.files?.[0];
-                  if (file) handleVideoUpload(file);
-                }}
-                disabled={analyzing}
-                className="hidden"
-              />
-              <span className="block w-full bg-[#39FF14] text-[#0A0F0D] font-bold rounded-lg py-4 text-center cursor-pointer hover:scale-105 transition-all disabled:opacity-50">
-                {analyzing ? '⏳ Analyse en cours...' : '📹 Sélectionner une vidéo'}
-              </span>
-            </label>
+            {/* Options pour sélectionner une vidéo */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Option 1: Galerie */}
+              <label className="block">
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => {
+                    const file = e.currentTarget.files?.[0];
+                    if (file) handleVideoUpload(file);
+                  }}
+                  disabled={analyzing}
+                  className="hidden"
+                />
+                <span className="block w-full bg-[#39FF14] text-[#0A0F0D] font-bold rounded-lg py-4 text-center cursor-pointer hover:scale-105 transition-all disabled:opacity-50 active:scale-95">
+                  {analyzing ? '⏳ Analyse...' : '🎬 Galerie'}
+                </span>
+              </label>
+
+              {/* Option 2: Caméra (sur mobile) */}
+              <label className="block">
+                <input
+                  type="file"
+                  accept="video/*"
+                  capture="environment"
+                  onChange={(e) => {
+                    const file = e.currentTarget.files?.[0];
+                    if (file) handleVideoUpload(file);
+                  }}
+                  disabled={analyzing}
+                  className="hidden"
+                />
+                <span className="block w-full bg-[#39FF14] text-[#0A0F0D] font-bold rounded-lg py-4 text-center cursor-pointer hover:scale-105 transition-all disabled:opacity-50 active:scale-95">
+                  {analyzing ? '⏳ Analyse...' : '📱 Caméra'}
+                </span>
+              </label>
+            </div>
 
             {error && (
               <div className="mt-4 bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-red-400 text-sm">
