@@ -36,6 +36,22 @@ const typeShadows: Record<string, string> = {
   situation: 'hover:shadow-[0_0_20px_rgba(57,255,20,0.2)]',
 };
 
+/**
+ * Parse les dimensions depuis la chaîne "setup".
+ * Accepte les formats : "30x20m", "30x20", "30 x 20 m", "30m x 20m", etc.
+ * Retourne { width, height } en mètres ou null si non trouvé.
+ */
+function parseZoneDimensions(setup?: string): { width: number; height: number } | null {
+  if (!setup) return null;
+  // Regex : deux nombres séparés par "x" ou "×", optionnellement entourés de "m" et d'espaces
+  const match = setup.match(/(\d+(?:[.,]\d+)?)\s*[xX×]\s*(\d+(?:[.,]\d+)?)/);
+  if (!match) return null;
+  const w = parseFloat(match[1].replace(',', '.'));
+  const h = parseFloat(match[2].replace(',', '.'));
+  if (isNaN(w) || isNaN(h) || w <= 0 || h <= 0) return null;
+  return { width: w, height: h };
+}
+
 export function TacticsCard({
   title,
   objective,
@@ -58,17 +74,23 @@ export function TacticsCard({
   };
 
   // Fallbacks for missing data
-  const safeTitle = title || 'Exercice sans titre';
+  const safeTitle     = title     || 'Exercice sans titre';
   const safeObjective = objective || 'Aucun objectif défini';
-  const safeContent = content || 'Aucune description disponible';
-  const safeDuration = typeof duration === 'number' && duration > 0 ? duration : 15;
+  const safeContent   = content   || 'Aucune description disponible';
+  const safeDuration  = typeof duration === 'number' && duration > 0 ? duration : 15;
+
+  // Dimensions de zone extraites du champ "setup"
+  // On cherche aussi dans "fieldSetup" en fallback
+  const zoneDims = parseZoneDimensions(setup) ?? parseZoneDimensions(fieldSetup);
 
   return (
     <div
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={`bg-[#141E1A] rounded-2xl p-4 md:p-6 border-2 transition-all duration-300 hover:scale-[1.02] group animate-fade-in-up ${
-        isChecked ? `${typeBorders[type]} shadow-[0_0_30px_${type === 'game' ? 'rgba(57,255,20,0.5)' : 'rgba(16,185,129,0.5)'}]` : `${typeBorders[type]} ${typeShadows[type]}`
+        isChecked
+          ? `${typeBorders[type]} shadow-[0_0_30px_${type === 'game' ? 'rgba(57,255,20,0.5)' : 'rgba(16,185,129,0.5)'}]`
+          : `${typeBorders[type]} ${typeShadows[type]}`
       }`}
     >
       <div className="flex items-start justify-between mb-3 md:mb-4 gap-2 md:gap-4">
@@ -76,7 +98,7 @@ export function TacticsCard({
           <div className={`text-2xl md:text-3xl mb-1 md:mb-2 transition-transform duration-300 ${isHovered ? 'scale-110 animate-pop' : ''}`}>
             {typeIcons[type]}
           </div>
-          <h3 className="text-[#F3F4F6] font-bold text-sm md:text-lg group-hover:text-[#39FF14] transition-colors duration-200 ">
+          <h3 className="text-[#F3F4F6] font-bold text-sm md:text-lg group-hover:text-[#39FF14] transition-colors duration-200">
             {safeTitle}
           </h3>
         </div>
@@ -103,48 +125,38 @@ export function TacticsCard({
 
       <div className="space-y-2 md:space-y-4">
         <div>
-          <p className={`text-xs font-bold uppercase mb-0.5 md:mb-1 transition-colors duration-200 ${
-            isHovered ? 'text-[#39FF14]' : 'text-[#39FF14]'
-          }`}>
+          <p className="text-xs font-bold uppercase mb-0.5 md:mb-1 text-[#39FF14] transition-colors duration-200">
             Objectif
           </p>
-          <p className={`text-xs md:text-sm transition-colors duration-200 ${
-            isHovered ? 'text-[#10B981]' : 'text-[#F3F4F6]'
-          }`}>
+          <p className={`text-xs md:text-sm transition-colors duration-200 ${isHovered ? 'text-[#10B981]' : 'text-[#F3F4F6]'}`}>
             {safeObjective}
           </p>
         </div>
 
         <div>
-          <p className={`text-xs font-bold uppercase mb-0.5 md:mb-1 transition-colors duration-200 ${
-            isHovered ? 'text-[#10B981]' : 'text-[#39FF14]'
-          }`}>
+          <p className="text-xs font-bold uppercase mb-0.5 md:mb-1 text-[#39FF14] transition-colors duration-200">
             Contenu
           </p>
-          <p className={`text-xs md:text-sm transition-colors duration-200 ${
-            isHovered ? 'text-[#10B981]' : 'text-[#9CA3AF]'
-          }`}>
+          <p className={`text-xs md:text-sm transition-colors duration-200 ${isHovered ? 'text-[#10B981]' : 'text-[#9CA3AF]'}`}>
             {safeContent}
           </p>
         </div>
 
-        {/* Additional Details */}
+        {/* Détails */}
         {(setup || technique || fieldSetup) && (
           <div>
-            <p className={`text-xs font-bold uppercase mb-0.5 md:mb-1 transition-colors duration-200 ${
-              isHovered ? 'text-[#39FF14]' : 'text-[#39FF14]'
-            }`}>
+            <p className="text-xs font-bold uppercase mb-0.5 md:mb-1 text-[#39FF14] transition-colors duration-200">
               ℹ️ Détails
             </p>
             <div className="space-y-0.5 md:space-y-1 text-xs md:text-sm text-[#9CA3AF]">
-              {setup && <p><strong>Setup:</strong> {setup}</p>}
+              {setup     && <p><strong>Setup:</strong> {setup}</p>}
               {technique && <p><strong>Points clés:</strong> {technique}</p>}
               {fieldSetup && <p><strong>Terrain:</strong> {fieldSetup}</p>}
             </div>
           </div>
         )}
 
-        {/* Illustration Toggle — terrain SVG uniquement, jamais d'ASCII */}
+        {/* Schéma tactique */}
         {illustration && (() => {
           try {
             const diagram = JSON.parse(illustration);
@@ -162,13 +174,16 @@ export function TacticsCard({
                       <TacticalDiagram
                         players={diagram.players}
                         movements={diagram.movements || []}
+                        // Dimensions de zone parsées depuis "setup" ou "fieldSetup"
+                        zoneWidth={zoneDims?.width}
+                        zoneHeight={zoneDims?.height}
                       />
                     </div>
                   )}
                 </div>
               );
             }
-          } catch { /* illustration invalide → on n'affiche rien */ }
+          } catch { /* illustration invalide → rien */ }
           return null;
         })()}
       </div>
