@@ -293,7 +293,7 @@ export function TacticalDiagram({
         if (hasDep)   items.push({ color: 'rgba(255,255,255,0.6)', dash: true, label: 'Déplacement' });
         
         return (
-          <div className="absolute bottom-2 left-2 flex flex-wrap gap-3 p-1.5 px-2.5 rounded bg-black/60 backdrop-blur-md border border-white/10 pointer-events-none">
+          <div className="flex flex-wrap justify-center gap-3 p-2 w-full rounded bg-black/40 border border-white/5 mt-1">
             {items.map((item, i) => (
               <div key={i} className="flex items-center gap-1.5">
                  {item.isCircle ? (
@@ -303,7 +303,7 @@ export function TacticalDiagram({
                       <div className="w-full h-0.5" style={{ backgroundColor: item.color, borderTop: item.dash ? '1px dashed #000' : 'none' }}></div>
                    </div>
                  )}
-                 <span className="text-[9px] text-white/90 font-sans">{item.label}</span>
+                 <span className="text-[10px] text-white/90 font-sans font-medium">{item.label}</span>
               </div>
             ))}
           </div>
