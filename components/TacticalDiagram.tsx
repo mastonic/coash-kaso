@@ -48,7 +48,14 @@ interface TacticalDiagramProps {
 
 function arrowHead(x1: number, y1: number, x2: number, y2: number, color: string, METER: number) {
   const angle = Math.atan2(y2 - y1, x2 - x1);
-  const AL = 1.5 * METER, AW = 0.8 * METER;
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  
+  // Limiter la taille de la flèche si la passe est très courte
+  const maxAL = Math.max(len * 0.35, 0.5 * METER); 
+  const AL = Math.min(0.8 * METER, maxAL);
+  const AW = AL * 0.6;
+
   const ax1 = x2 - AL * Math.cos(angle) + AW * Math.sin(angle);
   const ay1 = y2 - AL * Math.sin(angle) - AW * Math.cos(angle);
   const ax2 = x2 - AL * Math.cos(angle) - AW * Math.sin(angle);
@@ -154,7 +161,7 @@ export function TacticalDiagram({
 
   // Label largeur de la zone
   const zoneLabel = hasZone ? `${zoneWidth}m × ${zoneHeight}m` : null;
-  const labelW    = hasZone ? Math.max(44, String(zoneLabel).length * 5.2) : 0;
+  const labelW    = hasZone ? Math.max(64, String(zoneLabel).length * 6.5) : 0;
 
   return (
     <div className="relative flex flex-col items-center gap-1.5 w-full">
@@ -215,16 +222,21 @@ export function TacticalDiagram({
             {([[zoneOriginX, zoneOriginY],[zoneOriginX+zonePxW, zoneOriginY],[zoneOriginX, zoneOriginY+zonePxH],[zoneOriginX+zonePxW, zoneOriginY+zonePxH]] as [number,number][]).map(([cx,cy], i) => (
               <circle key={`zc${i}`} cx={cx} cy={cy} r={2.5 * scale} fill="#FFE234" opacity={0.85} />
             ))}
-            {/* Badge dimensions avec scale */}
+            
+            {/* Mini Buts de la zone */}
+            <path d={`M ${zoneOriginX} ${zoneOriginY + zonePxH/2 - 2.5*METER} L ${zoneOriginX - 1.2*METER} ${zoneOriginY + zonePxH/2 - 2.5*METER} L ${zoneOriginX - 1.2*METER} ${zoneOriginY + zonePxH/2 + 2.5*METER} L ${zoneOriginX} ${zoneOriginY + zonePxH/2 + 2.5*METER}`} fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.8)" strokeWidth={1.5 * scale} />
+            <path d={`M ${zoneOriginX + zonePxW} ${zoneOriginY + zonePxH/2 - 2.5*METER} L ${zoneOriginX + zonePxW + 1.2*METER} ${zoneOriginY + zonePxH/2 - 2.5*METER} L ${zoneOriginX + zonePxW + 1.2*METER} ${zoneOriginY + zonePxH/2 + 2.5*METER} L ${zoneOriginX + zonePxW} ${zoneOriginY + zonePxH/2 + 2.5*METER}`} fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.8)" strokeWidth={1.5 * scale} />
+
+            {/* Badge dimensions avec scale ajusté */}
             <rect
               x={zoneOriginX + zonePxW/2 - (labelW * scale)/2}
-              y={zoneOriginY - 12 * scale}
-              width={labelW * scale} height={11 * scale} rx={3 * scale}
-              fill="rgba(0,0,0,0.78)"
+              y={zoneOriginY - 14 * scale}
+              width={labelW * scale} height={14 * scale} rx={4 * scale}
+              fill="rgba(0,0,0,0.85)"
             />
             <text
-              x={zoneOriginX + zonePxW/2} y={zoneOriginY - 4 * scale}
-              textAnchor="middle" fontSize={7 * scale} fontWeight="bold"
+              x={zoneOriginX + zonePxW/2} y={zoneOriginY - 6 * scale}
+              textAnchor="middle" fontSize={9 * scale} fontWeight="bold"
               fill="#FFE234" fontFamily="Arial, sans-serif"
             >
               {zoneLabel}
