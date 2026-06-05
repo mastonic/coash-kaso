@@ -141,6 +141,90 @@ CONTRAINTES :
 - Le JSON doit être valide et parsable
 - Minimum 0 consignes (si aucune lisible), maximum 10`;
 
+export interface VisionCorrectionExample {
+  originalResult: {
+    formation: string;
+    composition: Array<{ poste: string; nom: string }>;
+    consignes: string[];
+  };
+  correctedResult: {
+    formation: string;
+    composition: Array<{ poste: string; nom: string }>;
+    consignes: string[];
+  };
+}
+
+export function buildVisionPromptWithExamples(examples: VisionCorrectionExample[]): string {
+  const meaningful = examples.filter(ex => {
+    const formationChanged = ex.originalResult.formation !== ex.correctedResult.formation;
+    const compositionChanged =
+      JSON.stringify(ex.originalResult.composition) !== JSON.stringify(ex.correctedResult.composition);
+    const consignesChanged =
+      JSON.stringify(ex.originalResult.consignes) !== JSON.stringify(ex.correctedResult.consignes);
+    return formationChanged || compositionChanged || consignesChanged;
+  });
+
+  if (meaningful.length === 0) return VISION_TACTIC_PROMPT;
+
+  const lessons = meaningful
+    .map((ex, i) => {
+      const lines: string[] = [];
+
+      if (ex.originalResult.formation !== ex.correctedResult.formation) {
+        lines.push(
+          `  • Formation lue "${ex.originalResult.formation}" → correction réelle : "${ex.correctedResult.formation}"`
+        );
+      }
+
+      const invented = ex.originalResult.composition
+        .filter(p => p.nom !== 'Inconnu')
+        .filter(p => !ex.correctedResult.composition.some(c => c.nom === p.nom));
+      if (invented.length > 0) {
+        lines.push(
+          `  • Noms inventés à tort : ${invented.map(p => `"${p.nom}"(${p.poste})`).join(', ')} → auraient dû être "Inconnu"`
+        );
+      }
+
+      const missed = ex.correctedResult.composition
+        .filter(p => p.nom !== 'Inconnu')
+        .filter(p => !ex.originalResult.composition.some(o => o.nom === p.nom));
+      if (missed.length > 0) {
+        lines.push(
+          `  • Joueurs présents mais non détectés : ${missed.map(p => `"${p.nom}"(${p.poste})`).join(', ')}`
+        );
+      }
+
+      const inventedConsignes = ex.originalResult.consignes.filter(
+        c => !ex.correctedResult.consignes.includes(c)
+      );
+      if (inventedConsignes.length > 0) {
+        lines.push(
+          `  • Consignes inventées : ${inventedConsignes.slice(0, 3).map(c => `"${c}"`).join(', ')}`
+        );
+      }
+
+      const missedConsignes = ex.correctedResult.consignes.filter(
+        c => !ex.originalResult.consignes.includes(c)
+      );
+      if (missedConsignes.length > 0) {
+        lines.push(
+          `  • Consignes présentes mais manquées : ${missedConsignes.slice(0, 3).map(c => `"${c}"`).join(', ')}`
+        );
+      }
+
+      return lines.length > 0 ? `Correction ${i + 1} :\n${lines.join('\n')}` : null;
+    })
+    .filter(Boolean)
+    .join('\n\n');
+
+  if (!lessons) return VISION_TACTIC_PROMPT;
+
+  return `${VISION_TACTIC_PROMPT}
+
+LEÇONS DES ANALYSES PRÉCÉDENTES — intègre impérativement ces corrections dans ta réponse :
+${lessons}`;
+}
+
 export const PLAYER_IDENTIFICATION_PROMPT = `Tu es un système de reconnaissance faciale pour le suivi des joueurs.
 
 Compare le visage sur la photo cible avec les photos de référence des joueurs de l'équipe.

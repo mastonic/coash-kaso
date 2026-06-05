@@ -25,6 +25,11 @@ export function ProSeanceVision() {
   const [analysisResult, setAnalysisResult] = useState<VisionAnalysisResult | null>(null);
   const [error, setError] = useState('');
 
+  const [correctionOpen, setCorrectionOpen] = useState(false);
+  const [correctedResult, setCorrectedResult] = useState<VisionAnalysisResult | null>(null);
+  const [correctionSubmitted, setCorrectionSubmitted] = useState(false);
+  const [correctionLoading, setCorrectionLoading] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const analysisIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -116,13 +121,91 @@ export function ProSeanceVision() {
     }
   };
 
+  useEffect(() => {
+    if (analysisResult && state === 'complete') {
+      setCorrectedResult(JSON.parse(JSON.stringify(analysisResult)));
+      setCorrectionOpen(false);
+      setCorrectionSubmitted(false);
+    }
+  }, [analysisResult, state]);
+
   const reset = () => {
     setState('idle');
     setImagePreview('');
     setAnalysisProgress(0);
     setAnalysisResult(null);
     setError('');
+    setCorrectionOpen(false);
+    setCorrectedResult(null);
+    setCorrectionSubmitted(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const getImageHash = () => {
+    const base64 = imagePreview.split(',')[1] || '';
+    return base64.substring(0, 32);
+  };
+
+  const handleRemovePlayer = (idx: number) => {
+    if (!correctedResult) return;
+    setCorrectedResult({
+      ...correctedResult,
+      composition: correctedResult.composition.map((p, i) =>
+        i === idx ? { ...p, nom: 'Inconnu' } : p
+      ),
+    });
+  };
+
+  const handleUpdateFormation = (value: string) => {
+    if (!correctedResult) return;
+    setCorrectedResult({ ...correctedResult, formation: value });
+  };
+
+  const handleRemoveConsigne = (idx: number) => {
+    if (!correctedResult) return;
+    setCorrectedResult({
+      ...correctedResult,
+      consignes: correctedResult.consignes.filter((_, i) => i !== idx),
+    });
+  };
+
+  const handleUpdateConsigne = (idx: number, value: string) => {
+    if (!correctedResult) return;
+    setCorrectedResult({
+      ...correctedResult,
+      consignes: correctedResult.consignes.map((c, i) => (i === idx ? value : c)),
+    });
+  };
+
+  const handleAddConsigne = () => {
+    if (!correctedResult) return;
+    setCorrectedResult({
+      ...correctedResult,
+      consignes: [...correctedResult.consignes, ''],
+    });
+  };
+
+  const handleSubmitCorrection = async () => {
+    if (!correctedResult || !analysisResult) return;
+    setCorrectionLoading(true);
+    try {
+      await fetch('/api/vision-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageHash: getImageHash(),
+          originalResult: analysisResult,
+          correctedResult,
+        }),
+      });
+      setCorrectionSubmitted(true);
+      toast.success("Correction envoyée. Merci d'améliorer l'IA !");
+    } catch (err) {
+      console.error('Correction error:', err);
+      toast.error("Erreur lors de l'envoi de la correction");
+    } finally {
+      setCorrectionLoading(false);
+    }
   };
 
   const getPosteEmoji = (poste: string) => {
@@ -377,6 +460,115 @@ export function ProSeanceVision() {
               Valider la Compo
             </button>
           </div>
+
+          {/* Correction widget — améliore l'IA à chaque correction */}
+          {!correctionSubmitted ? (
+            <div className="pt-1">
+              <button
+                onClick={() => setCorrectionOpen(o => !o)}
+                className="w-full py-2 text-[#9CA3AF] text-xs border border-[rgba(57,255,20,0.1)] rounded-lg hover:border-[rgba(57,255,20,0.3)] hover:text-[#F3F4F6] transition-all"
+                aria-expanded={correctionOpen}
+              >
+                {correctionOpen ? '▲ Fermer' : '✏️ Résultat incorrect ? Corrigez-le — l\'IA apprendra'}
+              </button>
+
+              {correctionOpen && correctedResult && (
+                <div className="mt-3 bg-[#0A0F0D] rounded-xl border border-[rgba(57,255,20,0.2)] p-4 space-y-4">
+                  <p className="text-[#9CA3AF] text-xs">
+                    Vos corrections sont envoyées à l'IA pour améliorer les prochains scans.
+                  </p>
+
+                  {/* Formation */}
+                  <div className="space-y-1">
+                    <label className="text-[#9CA3AF] text-xs font-bold uppercase tracking-wide">Formation</label>
+                    <input
+                      type="text"
+                      value={correctedResult.formation}
+                      onChange={e => handleUpdateFormation(e.target.value)}
+                      className="w-full bg-[#141E1A] border border-[rgba(57,255,20,0.2)] text-[#F3F4F6] rounded-lg px-3 py-2 text-sm focus:border-[#39FF14] outline-none"
+                      placeholder="ex: 4-3-3"
+                    />
+                  </div>
+
+                  {/* Composition */}
+                  <div className="space-y-2">
+                    <label className="text-[#9CA3AF] text-xs font-bold uppercase tracking-wide">
+                      Composition — ✕ sur les noms inventés
+                    </label>
+                    <div className="space-y-1">
+                      {correctedResult.composition.map((player, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <span className="text-[#9CA3AF] text-xs w-10 shrink-0 font-mono">{player.poste}</span>
+                          <span
+                            className={`flex-1 text-xs px-2 py-1.5 rounded ${
+                              player.nom !== 'Inconnu'
+                                ? 'text-[#F3F4F6] bg-[#141E1A]'
+                                : 'text-[#4B5563] bg-[#141E1A] italic'
+                            }`}
+                          >
+                            {player.nom}
+                          </span>
+                          {player.nom !== 'Inconnu' && (
+                            <button
+                              onClick={() => handleRemovePlayer(idx)}
+                              className="text-red-400 hover:text-red-300 text-xs font-bold px-2 py-1 rounded hover:bg-red-500/10 transition-all"
+                              aria-label={`Marquer ${player.nom} comme inventé`}
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Consignes */}
+                  <div className="space-y-2">
+                    <label className="text-[#9CA3AF] text-xs font-bold uppercase tracking-wide">
+                      Consignes — supprimez les inventées, ajoutez les manquantes
+                    </label>
+                    <div className="space-y-1">
+                      {correctedResult.consignes.map((consigne, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={consigne}
+                            onChange={e => handleUpdateConsigne(idx, e.target.value)}
+                            className="flex-1 bg-[#141E1A] border border-[rgba(57,255,20,0.1)] text-[#F3F4F6] rounded px-2 py-1.5 text-xs focus:border-[#39FF14] outline-none"
+                          />
+                          <button
+                            onClick={() => handleRemoveConsigne(idx)}
+                            className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded hover:bg-red-500/10 transition-all"
+                            aria-label="Supprimer cette consigne"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        onClick={handleAddConsigne}
+                        className="text-[#39FF14] text-xs hover:underline mt-1"
+                      >
+                        + Ajouter une consigne manquante
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleSubmitCorrection}
+                    disabled={correctionLoading}
+                    className="w-full py-3 bg-[#39FF14]/10 border border-[#39FF14] text-[#39FF14] font-bold rounded-lg hover:bg-[#39FF14]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {correctionLoading ? 'Envoi...' : '🧠 Envoyer la correction à l\'IA'}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="pt-1 py-3 text-center text-[#39FF14] text-xs bg-[#39FF14]/10 rounded-lg border border-[#39FF14]/30">
+              ✓ Correction reçue — l'IA apprendra de vos scans. Merci !
+            </div>
+          )}
         </div>
       )}
 

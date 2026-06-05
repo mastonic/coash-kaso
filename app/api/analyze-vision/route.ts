@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { VISION_TACTIC_PROMPT } from '@/services/prompts';
+import { buildVisionPromptWithExamples, VisionCorrectionExample } from '@/services/prompts';
 import { validateOrigin, sanitizeErrorForClient, apiError, apiSuccess } from '@/lib/security';
 import { getRateLimitKey, checkRateLimit, createRateLimitHeaders } from '@/lib/rate-limit';
 import { adminDb } from '@/lib/firebase-admin';
@@ -91,6 +91,34 @@ export async function POST(request: NextRequest) {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
+    // Fetch recent user corrections and build a self-improving prompt
+    let recentExamples: VisionCorrectionExample[] = [];
+    try {
+      if (adminDb) {
+        const feedbackSnap = await adminDb
+          .collection('vision_feedback')
+          .orderBy('timestamp', 'desc')
+          .limit(5)
+          .get();
+        recentExamples = feedbackSnap.docs
+          .map((doc): VisionCorrectionExample | null => {
+            const d = doc.data() as Record<string, unknown>;
+            if (d.originalResult && d.correctedResult) {
+              return {
+                originalResult: d.originalResult as VisionCorrectionExample['originalResult'],
+                correctedResult: d.correctedResult as VisionCorrectionExample['correctedResult'],
+              };
+            }
+            return null;
+          })
+          .filter((ex): ex is VisionCorrectionExample => ex !== null);
+      }
+    } catch {
+      // Firebase unavailable — proceed with base prompt
+    }
+
+    const dynamicPrompt = buildVisionPromptWithExamples(recentExamples);
+
     // Create message with image data
     const response = await model.generateContent({
       contents: [
@@ -98,7 +126,7 @@ export async function POST(request: NextRequest) {
           role: 'user',
           parts: [
             {
-              text: VISION_TACTIC_PROMPT,
+              text: dynamicPrompt,
             },
             {
               inlineData: {
