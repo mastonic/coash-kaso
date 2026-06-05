@@ -106,10 +106,16 @@ export const VISION_TACTIC_PROMPT = `Tu es l'analyste vidéo de MastroAI, expert
 
 Examine attentivement la photo fournie d'un tableau de vestiaire/tableau blanc de football.
 
+RÈGLE ABSOLUE — NE PAS INVENTER :
+- Ne rapporte QUE ce qui est clairement et sans ambiguïté visible dans l'image.
+- Si un élément est flou, partiellement caché, illisible ou absent, mets "Inconnu" ou omets-le.
+- N'invente jamais un nom de joueur, une formation ou une consigne qui n'est pas explicitement visible.
+- En cas de doute sur un mot ou un chiffre, mets "Inconnu".
+
 Tâches :
-1. Détecte le système de jeu dessiné (ex: 4-4-2, 4-3-3, 5-3-2, etc.) en analysant la formation
-2. Extrait les noms des joueurs si visibles sur le schéma
-3. Listes les consignes tactiques, instructions et objectifs écrits sur le tableau
+1. Détecte le système de jeu dessiné (ex: 4-4-2, 4-3-3, 5-3-2) uniquement si la formation est clairement lisible dans l'image. Sinon, mets "Inconnu".
+2. Extrait uniquement les noms de joueurs qui sont lisiblement écrits sur le schéma. Si un nom est illisible, mets "Inconnu".
+3. Liste uniquement les consignes tactiques réellement écrites et lisibles sur le tableau. N'en fabrique pas.
 
 RÉPONSE OBLIGATOIRE EN JSON STRICT (pas de texte avant/après) :
 {
@@ -122,20 +128,18 @@ RÉPONSE OBLIGATOIRE EN JSON STRICT (pas de texte avant/après) :
   ],
   "consignes": [
     "Maintenir la compacité en défense",
-    "Circuler le ballon rapidement en milieu",
-    "Transitions rapides vers l'avant",
-    "Presser haut sur perte de ballon"
+    "Circuler le ballon rapidement en milieu"
   ],
-  "observations": "Tableau bien organisé avec formation claire et consignes stratégiques"
+  "observations": "Tableau lisible avec formation claire. Certains noms illisibles."
 }
 
 CONTRAINTES :
-- La formation DOIT être au format classique (ex: 4-2-3-1, 3-5-2)
-- Si un poste n'a pas de nom visible, mettre "Inconnu"
-- Les consignes doivent être en français, claires et spécifiques
-- Si l'image n'est pas un tableau tactique, retourner un message d'erreur dans "observations"
+- La formation DOIT être au format classique (ex: 4-2-3-1, 3-5-2) ou "Inconnu" si non lisible
+- Si un poste n'a pas de nom visible, mettre "Inconnu" — ne jamais inventer un nom
+- Les consignes doivent être en français et UNIQUEMENT celles réellement écrites sur l'image
+- Si l'image est trop floue, trop mal éclairée ou n'est pas un tableau tactique, retourner un message d'erreur dans "observations" et des listes vides
 - Le JSON doit être valide et parsable
-- Minimum 2 consignes, maximum 10`;
+- Minimum 0 consignes (si aucune lisible), maximum 10`;
 
 export const PLAYER_IDENTIFICATION_PROMPT = `Tu es un système de reconnaissance faciale pour le suivi des joueurs.
 
