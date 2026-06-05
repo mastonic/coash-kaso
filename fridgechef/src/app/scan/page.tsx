@@ -171,7 +171,7 @@ export default function ScanPage() {
         } else {
           setScanState('success');
         }
-      }, 2500);
+      }, 4500);
 
     } catch (err: any) {
       const errMsg = err?.message || '';
@@ -543,15 +543,44 @@ export default function ScanPage() {
       )}
 
       {scanState === 'success' && (
-        <div className="absolute inset-0 z-[100] bg-black/95 backdrop-blur-2xl p-10 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in duration-500 overflow-y-auto">
-            <div className="w-24 h-24 bg-primary rounded-full flex items-center justify-center mb-6 shadow-glow-primary scale-110 shrink-0">
-                <span className="material-symbols-outlined text-5xl text-black font-black">check_circle</span>
-            </div>
-            <h2 className="text-4xl font-black italic tracking-tighter uppercase mb-2">Scan Réussi !</h2>
-            <p className="text-on-surface-variant font-medium text-sm mb-6">{detectedItems.length} ingrédient{detectedItems.length > 1 ? 's' : ''} identifié{detectedItems.length > 1 ? 's' : ''} et ajouté{detectedItems.length > 1 ? 's' : ''} à votre frigo.</p>
+        <div className={`absolute inset-0 z-[100] backdrop-blur-2xl flex flex-col animate-in fade-in zoom-in duration-500 transition-colors ${correctionOpen ? 'bg-black/80' : 'bg-black/95'}`}>
 
-            {/* Correction widget — améliore l'IA à chaque retour */}
-            <div className="w-full max-w-sm mb-6">
+          {/* Photo du frigo visible quand le panel de correction est ouvert */}
+          {correctionOpen && capturedImage && (
+            <div className="shrink-0 h-[38vh] relative overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={capturedImage} alt="Photo scannée" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/70" />
+              <div className="absolute bottom-3 left-4 right-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-white/60 text-sm">zoom_in</span>
+                <span className="text-white/60 text-[9px] font-black uppercase tracking-widest">
+                  Comparez avec votre photo
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Contenu principal */}
+          <div className={`flex flex-col items-center text-center overflow-y-auto px-10 ${correctionOpen ? 'flex-1 justify-start pt-4 pb-8' : 'flex-1 justify-center py-10'}`}>
+
+            {!correctionOpen && (
+              <>
+                <div className="w-24 h-24 bg-primary rounded-full flex items-center justify-center mb-6 shadow-glow-primary scale-110 shrink-0">
+                  <span className="material-symbols-outlined text-5xl text-black font-black">check_circle</span>
+                </div>
+                <h2 className="text-4xl font-black italic tracking-tighter uppercase mb-2">Scan Réussi !</h2>
+                <p className="text-on-surface-variant font-medium text-sm mb-6">{detectedItems.length} ingrédient{detectedItems.length > 1 ? 's' : ''} identifié{detectedItems.length > 1 ? 's' : ''} et ajouté{detectedItems.length > 1 ? 's' : ''} à votre frigo.</p>
+              </>
+            )}
+
+            {correctionOpen && (
+              <p className="text-white/50 text-xs font-black uppercase tracking-widest mb-3 w-full max-w-sm text-left">
+                {detectedItems.length} ingrédient{detectedItems.length > 1 ? 's' : ''} détecté{detectedItems.length > 1 ? 's' : ''}
+              </p>
+            )}
+
+            {/* Correction widget */}
+            <div className="w-full max-w-sm mb-4">
               {!correctionSubmitted ? (
                 <>
                   <button
@@ -559,16 +588,16 @@ export default function ScanPage() {
                     className="w-full py-3 text-white font-black text-xs uppercase tracking-widest border-2 border-white/30 rounded-xl hover:border-white/60 hover:bg-white/5 transition-all"
                     aria-expanded={correctionOpen}
                   >
-                    {correctionOpen ? '▲ Fermer la correction' : '✏️ Certains ingrédients sont incorrects ?'}
+                    {correctionOpen ? '▲ Masquer la correction' : '✏️ Certains ingrédients sont incorrects ?'}
                   </button>
 
                   {correctionOpen && (
-                    <div className="mt-2 bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3 text-left">
+                    <div className="mt-3 bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3 text-left">
                       <p className="text-white/40 text-[10px] uppercase tracking-widest">
-                        Corrigez la liste — l'IA apprendra
+                        ✕ sur les erreurs · + pour les oublis · l'IA apprendra
                       </p>
 
-                      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
                         {correctedIngredients.map((item, idx) => (
                           <div key={idx} className="flex items-center gap-2">
                             <input
@@ -619,7 +648,7 @@ export default function ScanPage() {
               )}
             </div>
 
-            <div className="w-full space-y-4 max-w-sm">
+            <div className="w-full space-y-3 max-w-sm">
                 <button onClick={() => router.push('/recipes')} className="w-full bg-primary text-black py-4 rounded-2xl font-black uppercase tracking-widest text-xs italic shadow-glow-primary active:scale-95 transition-all">
                     Voir les recettes
                 </button>
@@ -637,6 +666,7 @@ export default function ScanPage() {
                     Scanner Autre Chose
                 </button>
             </div>
+          </div>
         </div>
       )}
 
