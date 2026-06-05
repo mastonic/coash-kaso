@@ -312,8 +312,19 @@ export default function ScanPage() {
   return (
     <div className="h-screen bg-black text-white flex flex-col overflow-hidden italic selection:bg-primary/30">
 
+      {/* Beta banner — désactivé en prod via NEXT_PUBLIC_BETA_MODE */}
+      {process.env.NEXT_PUBLIC_BETA_MODE === 'true' && (
+        <div className="absolute top-0 left-0 right-0 z-[60] bg-primary/10 border-b border-primary/20 backdrop-blur-xl px-4 py-2 flex items-center justify-center gap-2 pointer-events-none">
+          <span className="text-primary text-[9px] font-black uppercase tracking-[0.2em]">🧪 Mode bêta</span>
+          <span className="text-white/40 text-[9px]">—</span>
+          <span className="text-white/50 text-[9px]">Tes corrections entraînent l'IA · Plus tu corriges, plus elle devient précise pour tout le monde</span>
+        </div>
+      )}
+
       {/* HUD Header */}
-      <div className="absolute top-0 left-0 right-0 z-50 p-6 flex justify-between items-center pointer-events-none">
+      <div className="absolute top-0 left-0 right-0 z-50 p-6 flex justify-between items-center pointer-events-none"
+        style={{ paddingTop: process.env.NEXT_PUBLIC_BETA_MODE === 'true' ? '2.5rem' : undefined }}
+      >
          <Link href="/dashboard" className="w-12 h-12 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center pointer-events-auto active:scale-90 transition-all">
             <span className="material-symbols-outlined text-white">arrow_back</span>
          </Link>
@@ -601,8 +612,9 @@ export default function ScanPage() {
                   )}
                 </>
               ) : (
-                <div className="py-2.5 text-center text-primary text-[10px] font-black uppercase tracking-widest bg-primary/10 rounded-xl border border-primary/30">
-                  ✓ Correction reçue — l'IA s'améliore !
+                <div className="py-3 text-center bg-primary/10 rounded-xl border border-primary/30 space-y-0.5 px-4">
+                  <p className="text-primary text-[10px] font-black uppercase tracking-widest">✓ Correction reçue</p>
+                  <p className="text-white/40 text-[9px]">Tu viens d'améliorer l'IA FridgeChef pour tous les utilisateurs 🙌</p>
                 </div>
               )}
             </div>
