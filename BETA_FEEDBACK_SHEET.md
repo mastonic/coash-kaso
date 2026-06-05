@@ -2,7 +2,11 @@
 
 | # | Date | Testeur | Fonctionnalité | Problème signalé | Sévérité | Statut | Correction apportée |
 |---|------|---------|---------------|-----------------|----------|--------|---------------------|
-| 1 | 2026-06-05 | Anonyme | MastroAI Vision | Faux positifs : détection d'éléments absents de l'image. Faux négatifs : éléments présents non détectés. Image testée : tableau peu lisible / mal arrangé. | Haute | ✅ Corrigé | Prompt Vision renforcé : instruction explicite de ne rapporter que ce qui est clairement visible, avertissement anti-hallucination, meilleure gestion des images de mauvaise qualité. Voir `services/prompts.ts` — `VISION_TACTIC_PROMPT`. |
+| 1 | 2026-06-05 | Anonyme | Scan frigo | Faux positifs : détection d'aliments absents. Faux négatifs : aliments présents non détectés. Frigo mal rangé. | Haute | ✅ Corrigé | Prompt renforcé anti-hallucination + boucle few-shot : les corrections des utilisateurs s'injectent dans le prompt Gemini. Voir `scan-fridge/route.ts`. |
+| 2 | 2026-06-05 | Anonyme | /scan — Bandeau bêta | Bandeau bêta invisible en production. | Moyenne | ✅ Corrigé | Ajouter `NEXT_PUBLIC_BETA_MODE=true` dans `.env.production` et redéployer. |
+| 3 | 2026-06-05 | Anonyme | /scan — Après scan | Après résultat du scan, l'app repropose la galerie au lieu de rester sur l'écran succès. | Moyenne | 🔄 En cours | Cause probable : tap accidentel sur "Scanner Autre Chose" ou double-trigger du file input sur mobile. À investiguer. |
+| 4 | 2026-06-05 | Anonyme | /scan — Widget correction | Widget "Corriger l'ingrédient" trop discret, peu visible. | Faible | 🔄 En cours | Rendre le bouton plus proéminent. |
+| 5 | 2026-06-05 | Anonyme | /api/scan-feedback | Test curl sans token échoue. | Faible | ✅ Normal | Comportement attendu : API protégée par auth Firebase. 401 sans token = correct. |
 
 ---
 

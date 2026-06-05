@@ -556,10 +556,10 @@ export default function ScanPage() {
                 <>
                   <button
                     onClick={() => setCorrectionOpen(o => !o)}
-                    className="w-full py-2 text-white/40 text-[10px] font-black uppercase tracking-widest border border-white/10 rounded-xl hover:border-white/20 hover:text-white/60 transition-all"
+                    className="w-full py-3 text-white font-black text-xs uppercase tracking-widest border-2 border-white/30 rounded-xl hover:border-white/60 hover:bg-white/5 transition-all"
                     aria-expanded={correctionOpen}
                   >
-                    {correctionOpen ? '▲ Fermer' : '✏️ Des erreurs dans la liste ?'}
+                    {correctionOpen ? '▲ Fermer la correction' : '✏️ Certains ingrédients sont incorrects ?'}
                   </button>
 
                   {correctionOpen && (
