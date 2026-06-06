@@ -24,22 +24,14 @@ export async function POST(request: NextRequest) {
       .get();
 
     if (expiredSnap.size > 0) {
-      const deleteBatch = adminDb.batch();
-      expiredSnap.docs.forEach(doc => deleteBatch.delete(doc.ref));
-      await deleteBatch.commit();
+      await Promise.all(expiredSnap.docs.map(doc => doc.ref.delete()));
     }
 
-    // Écrire les nouveaux deals (max 499 par batch Firestore)
-    let ingested = 0;
-    for (let i = 0; i < deals.length; i += 499) {
-      const chunk = deals.slice(i, i + 499);
-      const batch = adminDb.batch();
-
-      for (const deal of chunk) {
-        if (!deal.item?.trim() || !deal.chain?.trim() || typeof deal.price_promo !== 'number') continue;
-
-        const ref = adminDb.collection('catalog_deals').doc();
-        batch.set(ref, {
+    // Écrire les nouveaux deals en parallèle
+    const writes = deals
+      .filter(deal => deal.item?.trim() && deal.chain?.trim() && typeof deal.price_promo === 'number')
+      .map(deal =>
+        adminDb.collection('catalog_deals').doc().set({
           item: deal.item.trim(),
           itemNormalized: deal.item.toLowerCase().trim(),
           chain: deal.chain.trim(),
@@ -51,16 +43,14 @@ export async function POST(request: NextRequest) {
           region: deal.region || 'national',
           category: deal.category || 'Épicerie',
           scrapedAt: new Date().toISOString(),
-        });
-        ingested++;
-      }
+        })
+      );
 
-      await batch.commit();
-    }
+    await Promise.all(writes);
 
     return NextResponse.json({
-      message: `${ingested} deals ingérés, ${expiredSnap.size} expirés supprimés`,
-      ingested,
+      message: `${writes.length} deals ingérés, ${expiredSnap.size} expirés supprimés`,
+      ingested: writes.length,
       deleted: expiredSnap.size,
     });
   } catch (err: any) {
