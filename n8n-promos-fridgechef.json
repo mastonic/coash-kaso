@@ -1,6 +1,6 @@
 {
-  "meta": { "instanceId": "fridgechef-promos-v4" },
-  "name": "FridgeChef — Promos Alimentaires (Browserless)",
+  "meta": { "instanceId": "fridgechef-promos-v5" },
+  "name": "FridgeChef — Promos Alimentaires (FlareSolverr)",
   "nodes": [
     {
       "parameters": {
@@ -40,8 +40,8 @@
             },
             {
               "id": "cfg-03",
-              "name": "BROWSERLESS_URL",
-              "value": "http://browserless:3000/content",
+              "name": "FLARESOLVERR_URL",
+              "value": "http://flaresolverr:8191/v1",
               "type": "string"
             }
           ]
@@ -56,7 +56,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $('Config').first().json.BROWSERLESS_URL }}",
+        "url": "={{ $('Config').first().json.FLARESOLVERR_URL }}",
         "authentication": "none",
         "method": "POST",
         "sendHeaders": true,
@@ -67,25 +67,20 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={ \"url\": \"https://www.lidl.fr/la-semaine-lidl\", \"waitFor\": 4000 }",
+        "jsonBody": "={ \"cmd\": \"request.get\", \"url\": \"https://www.carrefour.fr/promotions\", \"maxTimeout\": 60000 }",
         "options": {
-          "response": {
-            "response": {
-              "responseFormat": "text",
-              "fullResponse": false
-            }
-          }
+          "timeout": 90000
         }
       },
       "id": "node-003a",
-      "name": "Browserless — Lidl",
+      "name": "FlareSolverr — Carrefour",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [700, 180]
     },
     {
       "parameters": {
-        "url": "={{ $('Config').first().json.BROWSERLESS_URL }}",
+        "url": "={{ $('Config').first().json.FLARESOLVERR_URL }}",
         "authentication": "none",
         "method": "POST",
         "sendHeaders": true,
@@ -96,25 +91,20 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={ \"url\": \"https://www.intermarche.com/promotions\", \"waitFor\": 4000 }",
+        "jsonBody": "={ \"cmd\": \"request.get\", \"url\": \"https://www.lidl.fr/la-semaine-lidl\", \"maxTimeout\": 60000 }",
         "options": {
-          "response": {
-            "response": {
-              "responseFormat": "text",
-              "fullResponse": false
-            }
-          }
+          "timeout": 90000
         }
       },
       "id": "node-003b",
-      "name": "Browserless — Intermarché",
+      "name": "FlareSolverr — Lidl",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [700, 420]
     },
     {
       "parameters": {
-        "url": "={{ $('Config').first().json.BROWSERLESS_URL }}",
+        "url": "={{ $('Config').first().json.FLARESOLVERR_URL }}",
         "authentication": "none",
         "method": "POST",
         "sendHeaders": true,
@@ -125,25 +115,20 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={ \"url\": \"https://www.carrefour.fr/promotions\", \"waitFor\": 5000 }",
+        "jsonBody": "={ \"cmd\": \"request.get\", \"url\": \"https://www.intermarche.com/promotions\", \"maxTimeout\": 60000 }",
         "options": {
-          "response": {
-            "response": {
-              "responseFormat": "text",
-              "fullResponse": false
-            }
-          }
+          "timeout": 90000
         }
       },
       "id": "node-003c",
-      "name": "Browserless — Carrefour",
+      "name": "FlareSolverr — Intermarché",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [700, 660]
     },
     {
       "parameters": {
-        "jsCode": "// ─── PARSER Browserless — Lidl + Intermarché ────────────────────────────────\n// Input : HTML rendu par Chromium via Browserless /content\n// Le nœud HTTP avec responseFormat:text met le HTML dans $json.data\n\nconst FOOD_KEYWORDS = [\n  'lait','yaourt','fromage','beurre','crème','oeuf','oeufs','feta','mozzarella',\n  'camembert','emmental','comté','chèvre','ricotta','mascarpone',\n  'poulet','boeuf','porc','veau','agneau','saumon','thon','crevette','cabillaud',\n  'jambon','lardons','bacon','saucisse','merguez','chipolata','canard','steak',\n  'tomate','carotte','courgette','oignon','salade','poireau','brocoli','poivron',\n  'avocat','concombre','champignon','épinard','aubergine','haricot',\n  'pomme','banane','orange','poire','fraise','raisin','melon','pêche','citron','ananas',\n  'pâtes','riz','farine','pain','baguette','céréales','lentilles','quinoa','semoule',\n  'huile','sauce tomate','moutarde','mayonnaise','ketchup','vinaigre',\n  'eau','jus','café','thé','bière','vin','sirop',\n  'pizza','surgelé','conserve','maïs','soupe','confiture','miel','chocolat',\n  'escalope','nuggets','côte','filet',\n];\n\nconst CATEGORY_MAP = [\n  [['fruit','légume','carotte','poivron','salade','courgette','tomate','concombre','épinard','brocoli','oignon','ail','poireau','aubergine','champignon','avocat','banane','poire','pêche','fraise','cerise','raisin','melon','ananas','orange','citron','pomme de terre'], 'Fruits & Légumes'],\n  [['viande','boucherie','poulet','boeuf','porc','veau','agneau','côte','steak','filet','canard','lapin','dinde','rôti','escalope','nuggets'], 'Viandes & Poissons'],\n  [['poisson','saumon','thon','crevette','cabillaud','moule','huître','dorade','bar','truite','sardine'], 'Viandes & Poissons'],\n  [['lait','yaourt','fromage','beurre','crème','laitier','oeuf','feta','emmental','camembert','chèvre','mozzarella','ricotta'], 'Produits Laitiers'],\n  [['surgelé','congel','glace'], 'Surgelés'],\n  [['pain','boulang','viennoiserie','brioche','baguette','croissant','madeleine'], 'Boulangerie'],\n  [['bière','vin','eau','jus','boisson','soda','café','thé','sirop','cidre','champagne'], 'Boissons'],\n  [['jambon','charcuterie','saucisson','lardons','bacon','rillette','pâté','chorizo','merguez'], 'Charcuterie'],\n];\n\nconst CHAIN_HINTS = [\n  ['lidl', 'Lidl'],\n  ['intermarche', 'Intermarché'],\n  ['intermarché', 'Intermarché'],\n  ['carrefour', 'Carrefour'],\n  ['auchan', 'Auchan'],\n  ['leclerc', 'Leclerc'],\n  ['super u', 'Super U'],\n  ['monoprix', 'Monoprix'],\n];\n\nfunction guessCategory(text) {\n  const lower = text.toLowerCase();\n  for (const [keywords, cat] of CATEGORY_MAP) {\n    if (keywords.some(k => lower.includes(k))) return cat;\n  }\n  return 'Épicerie';\n}\n\nfunction isFood(text) {\n  const lower = text.toLowerCase();\n  return FOOD_KEYWORDS.some(k => lower.includes(k)) ||\n    CATEGORY_MAP.some(([kws]) => kws.some(k => lower.includes(k)));\n}\n\nfunction nextSunday() {\n  const d = new Date();\n  d.setDate(d.getDate() + (7 - d.getDay() || 7));\n  return d.toISOString().split('T')[0];\n}\n\nfunction cleanName(name) {\n  return name\n    .replace(/\\d+\\s*(g|kg|ml|cl|l|litres?|pièces?|unités?|x\\d+)/gi, '')\n    .replace(/[\\s]+/g, ' ')\n    .trim();\n}\n\nfunction guessChain(html) {\n  const lower = html.substring(0, 3000).toLowerCase();\n  for (const [key, val] of CHAIN_HINTS) {\n    if (lower.includes(key)) return val;\n  }\n  return 'Inconnu';\n}\n\nfunction stripHtml(html) {\n  return html\n    .replace(/<br\\s*\\/?>/gi, '\\n')\n    .replace(/<\\/p>/gi, '\\n')\n    .replace(/<\\/li>/gi, '\\n')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&#\\d+;/g, '')\n    .replace(/[ \\t]+/g, ' ')\n    .trim();\n}\n\nconst deals = [];\nconst inputs = $input.all();\n\nfor (const input of inputs) {\n  // Browserless /content avec responseFormat:text → $json.data\n  const rawHtml = String(input.json.data || input.json.html || input.json.body || '');\n  if (rawHtml.length < 200) continue;\n\n  const chainName = guessChain(rawHtml);\n\n  // ── 1. JSON-LD schema.org Product ──────────────────────────────────────────\n  const jsonLdRegex = /<script[^>]+type=[\"']application\\/ld\\+json[\"'][^>]*>([\\s\\S]*?)<\\/script>/gi;\n  let ldMatch;\n  let foundViaJsonLd = false;\n\n  while ((ldMatch = jsonLdRegex.exec(rawHtml)) !== null) {\n    try {\n      const data = JSON.parse(ldMatch[1]);\n      const items = Array.isArray(data) ? data : (data['@graph'] ? data['@graph'] : [data]);\n      for (const item of items) {\n        const type = Array.isArray(item['@type']) ? item['@type'][0] : item['@type'];\n        if (!['Product', 'Offer'].includes(type)) continue;\n\n        const name = cleanName(String(item.name || ''));\n        if (name.length < 3 || !isFood(name)) continue;\n\n        const offerObj = item.offers || item;\n        const rawPrice = offerObj.price ?? offerObj.lowPrice ?? offerObj.minPrice ?? null;\n        if (rawPrice === null) continue;\n        const price = parseFloat(String(rawPrice).replace(',', '.'));\n        if (isNaN(price) || price <= 0 || price > 300) continue;\n\n        foundViaJsonLd = true;\n        deals.push({\n          item: name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(),\n          chain: chainName,\n          brand: typeof item.brand?.name === 'string' ? item.brand.name : null,\n          price_promo: Math.round(price * 100) / 100,\n          price_normal: null,\n          unit: null,\n          valid_until: nextSunday(),\n          region: 'national',\n          category: guessCategory(name),\n        });\n      }\n    } catch { /* JSON-LD invalide */ }\n  }\n\n  // ── 2. Fallback : regex prix ─────────────────────────────────────────────────\n  if (!foundViaJsonLd) {\n    const text = stripHtml(rawHtml);\n    const lines = text.split('\\n').map(l => l.trim()).filter(l => l.length > 2);\n\n    for (const line of lines) {\n      const priceMatches = [...line.matchAll(/(\\d{1,3}[,.]\\d{2})\\s*€/g)];\n      if (priceMatches.length === 0) continue;\n\n      const firstPriceIdx = line.indexOf(priceMatches[0][0]);\n      let name = line.substring(0, firstPriceIdx).replace(/[-–—:|]/g, ' ').trim();\n      name = cleanName(name);\n      if (name.length < 3 || name.length > 80) continue;\n      if (!isFood(name + ' ' + line)) continue;\n\n      const pricePromo = parseFloat(priceMatches[0][1].replace(',', '.'));\n      const priceNormal = priceMatches.length > 1\n        ? parseFloat(priceMatches[1][1].replace(',', '.'))\n        : null;\n\n      if (isNaN(pricePromo) || pricePromo <= 0 || pricePromo > 200) continue;\n\n      const unitMatch = line.match(/(le\\s+kg|la\\s+pièce|\\d+\\s*g\\b|\\d+\\s*kg\\b|\\d+\\s*cl\\b|\\d+\\s*l\\b|\\d+\\s*ml\\b)/i);\n\n      deals.push({\n        item: name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(),\n        chain: chainName,\n        brand: null,\n        price_promo: Math.round(pricePromo * 100) / 100,\n        price_normal: priceNormal && priceNormal > pricePromo ? Math.round(priceNormal * 100) / 100 : null,\n        unit: unitMatch ? unitMatch[0].trim() : null,\n        valid_until: nextSunday(),\n        region: 'national',\n        category: guessCategory(name),\n      });\n    }\n  }\n}\n\n// ── Dédoublonner ─────────────────────────────────────────────────────────────\nconst seen = new Map();\nconst deduped = [];\nfor (const d of deals) {\n  const key = `${d.item.toLowerCase().slice(0, 25)}-${d.chain.toLowerCase()}`;\n  const ex = seen.get(key);\n  if (!ex || d.price_promo < ex.price_promo) {\n    if (ex) deduped.splice(deduped.indexOf(ex), 1);\n    seen.set(key, d);\n    deduped.push(d);\n  }\n}\n\nreturn [{ json: { deals: deduped, count: deduped.length, sources: ['lidl.fr', 'intermarche.com', 'carrefour.fr'] } }];\n"
+        "jsCode": "// ─── PARSER FlareSolverr ─────────────────────────────────────────────────────\n// FlareSolverr retourne { status, solution: { response: '...HTML...' } }\n// On lit solution.response pour avoir le HTML de la page après résolution Cloudflare\n\nconst FOOD_KEYWORDS = [\n  'lait','yaourt','fromage','beurre','crème','oeuf','oeufs','feta','mozzarella',\n  'camembert','emmental','comté','chèvre','ricotta','mascarpone',\n  'poulet','boeuf','porc','veau','agneau','saumon','thon','crevette','cabillaud',\n  'jambon','lardons','bacon','saucisse','merguez','chipolata','canard','steak',\n  'tomate','carotte','courgette','oignon','salade','poireau','brocoli','poivron',\n  'avocat','concombre','champignon','épinard','aubergine','haricot',\n  'pomme','banane','orange','poire','fraise','raisin','melon','pêche','citron','ananas',\n  'pâtes','riz','farine','pain','baguette','céréales','lentilles','quinoa','semoule',\n  'huile','sauce tomate','moutarde','mayonnaise','ketchup','vinaigre',\n  'eau','jus','café','thé','bière','vin','sirop',\n  'pizza','surgelé','conserve','maïs','soupe','confiture','miel','chocolat',\n  'escalope','nuggets','côte','filet','poitrine','cuisse',\n];\n\nconst CATEGORY_MAP = [\n  [['fruit','légume','carotte','poivron','salade','courgette','tomate','concombre','épinard','brocoli','oignon','ail','poireau','aubergine','champignon','avocat','banane','poire','pêche','fraise','cerise','raisin','melon','ananas','orange','citron','pomme de terre'], 'Fruits & Légumes'],\n  [['viande','boucherie','poulet','boeuf','porc','veau','agneau','côte','steak','filet','canard','lapin','dinde','rôti','escalope','nuggets','poitrine','cuisse'], 'Viandes & Poissons'],\n  [['poisson','saumon','thon','crevette','cabillaud','moule','huître','dorade','bar','truite','sardine'], 'Viandes & Poissons'],\n  [['lait','yaourt','fromage','beurre','crème','laitier','oeuf','feta','emmental','camembert','chèvre','mozzarella','ricotta'], 'Produits Laitiers'],\n  [['surgelé','congel','glace'], 'Surgelés'],\n  [['pain','boulang','viennoiserie','brioche','baguette','croissant','madeleine'], 'Boulangerie'],\n  [['bière','vin','eau','jus','boisson','soda','café','thé','sirop','cidre','champagne'], 'Boissons'],\n  [['jambon','charcuterie','saucisson','lardons','bacon','rillette','pâté','chorizo','merguez'], 'Charcuterie'],\n];\n\nconst CHAIN_HINTS = [\n  ['carrefour','Carrefour'],\n  ['lidl','Lidl'],\n  ['intermarche','Intermarché'],['intermarché','Intermarché'],\n  ['auchan','Auchan'],['leclerc','Leclerc'],\n  ['super u','Super U'],['monoprix','Monoprix'],\n];\n\nfunction guessCategory(t) {\n  const l = t.toLowerCase();\n  for (const [kws, cat] of CATEGORY_MAP) if (kws.some(k => l.includes(k))) return cat;\n  return 'Épicerie';\n}\n\nfunction isFood(t) {\n  const l = t.toLowerCase();\n  return FOOD_KEYWORDS.some(k => l.includes(k)) || CATEGORY_MAP.some(([kws]) => kws.some(k => l.includes(k)));\n}\n\nfunction nextSunday() {\n  const d = new Date();\n  d.setDate(d.getDate() + (7 - d.getDay() || 7));\n  return d.toISOString().split('T')[0];\n}\n\nfunction cleanName(n) {\n  return n.replace(/\\d+\\s*(g|kg|ml|cl|l|litres?|pièces?|unités?|x\\d+)/gi, '').replace(/[\\s]+/g, ' ').trim();\n}\n\nfunction guessChain(html) {\n  const l = html.substring(0, 5000).toLowerCase();\n  for (const [k, v] of CHAIN_HINTS) if (l.includes(k)) return v;\n  return 'Inconnu';\n}\n\nfunction stripHtml(html) {\n  return html\n    .replace(/<br\\s*\\/?>/gi, '\\n').replace(/<\\/p>/gi, '\\n').replace(/<\\/li>/gi, '\\n')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ').replace(/&#\\d+;/g,'')\n    .replace(/[ \\t]+/g,' ').trim();\n}\n\nconst deals = [];\n\nfor (const input of $input.all()) {\n  // FlareSolverr → solution.response contient le HTML\n  const rawHtml = String(\n    input.json?.solution?.response ||\n    input.json?.data ||\n    input.json?.html ||\n    ''\n  );\n  if (rawHtml.length < 500) continue;\n\n  const chainName = guessChain(rawHtml);\n\n  // ── 1. JSON-LD schema.org Product ────────────────────────────────────────────\n  const jsonLdRx = /<script[^>]+type=[\"']application\\/ld\\+json[\"'][^>]*>([\\s\\S]*?)<\\/script>/gi;\n  let m;\n  let foundJsonLd = false;\n  while ((m = jsonLdRx.exec(rawHtml)) !== null) {\n    try {\n      const data = JSON.parse(m[1]);\n      const items = Array.isArray(data) ? data : (data['@graph'] || [data]);\n      for (const item of items) {\n        const type = Array.isArray(item['@type']) ? item['@type'][0] : item['@type'];\n        if (!['Product','Offer'].includes(type)) continue;\n        const name = cleanName(String(item.name || ''));\n        if (name.length < 3 || !isFood(name)) continue;\n        const offer = item.offers || item;\n        const price = parseFloat(String(offer.price ?? offer.lowPrice ?? offer.minPrice ?? '0').replace(',','.'));\n        if (!price || price <= 0 || price > 300) continue;\n        foundJsonLd = true;\n        deals.push({\n          item: name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(),\n          chain: chainName,\n          brand: typeof item.brand?.name === 'string' ? item.brand.name : null,\n          price_promo: Math.round(price * 100) / 100,\n          price_normal: null, unit: null,\n          valid_until: nextSunday(), region: 'national',\n          category: guessCategory(name),\n        });\n      }\n    } catch {}\n  }\n\n  // ── 2. Fallback : regex prix dans le texte ───────────────────────────────────\n  if (!foundJsonLd) {\n    const text = stripHtml(rawHtml);\n    const lines = text.split('\\n').map(l => l.trim()).filter(l => l.length > 2);\n    for (const line of lines) {\n      const pm = [...line.matchAll(/(\\d{1,3}[,.]\\d{2})\\s*€/g)];\n      if (!pm.length) continue;\n      let name = line.substring(0, line.indexOf(pm[0][0])).replace(/[-–—:|]/g, ' ').trim();\n      name = cleanName(name);\n      if (name.length < 3 || name.length > 80 || !isFood(name + ' ' + line)) continue;\n      const pp = parseFloat(pm[0][1].replace(',', '.'));\n      const pn = pm.length > 1 ? parseFloat(pm[1][1].replace(',', '.')) : null;\n      if (isNaN(pp) || pp <= 0 || pp > 200) continue;\n      const um = line.match(/(le\\s+kg|la\\s+pièce|\\d+\\s*g\\b|\\d+\\s*kg\\b|\\d+\\s*cl\\b|\\d+\\s*l\\b|\\d+\\s*ml\\b)/i);\n      deals.push({\n        item: name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(),\n        chain: chainName, brand: null,\n        price_promo: Math.round(pp * 100) / 100,\n        price_normal: pn && pn > pp ? Math.round(pn * 100) / 100 : null,\n        unit: um ? um[0].trim() : null,\n        valid_until: nextSunday(), region: 'national',\n        category: guessCategory(name),\n      });\n    }\n  }\n}\n\n// ── Dédoublonner ─────────────────────────────────────────────────────────────\nconst seen = new Map(), deduped = [];\nfor (const d of deals) {\n  const key = `${d.item.toLowerCase().slice(0,25)}-${d.chain.toLowerCase()}`;\n  const ex = seen.get(key);\n  if (!ex || d.price_promo < ex.price_promo) {\n    if (ex) deduped.splice(deduped.indexOf(ex), 1);\n    seen.set(key, d); deduped.push(d);\n  }\n}\n\nreturn [{ json: { deals: deduped, count: deduped.length, sources: ['carrefour.fr','lidl.fr','intermarche.com'] } }];\n"
       },
       "id": "node-004",
       "name": "Parser",
@@ -159,14 +144,8 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "x-ingest-secret",
-              "value": "={{ $('Config').first().json.INGEST_SECRET }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
+            { "name": "x-ingest-secret", "value": "={{ $('Config').first().json.INGEST_SECRET }}" },
+            { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
@@ -186,21 +165,19 @@
       "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
     },
     "Config": {
-      "main": [
-        [
-          { "node": "Browserless — Lidl", "type": "main", "index": 0 },
-          { "node": "Browserless — Intermarché", "type": "main", "index": 0 },
-          { "node": "Browserless — Carrefour", "type": "main", "index": 0 }
-        ]
-      ]
+      "main": [[
+        { "node": "FlareSolverr — Carrefour", "type": "main", "index": 0 },
+        { "node": "FlareSolverr — Lidl", "type": "main", "index": 0 },
+        { "node": "FlareSolverr — Intermarché", "type": "main", "index": 0 }
+      ]]
     },
-    "Browserless — Lidl": {
+    "FlareSolverr — Carrefour": {
       "main": [[{ "node": "Parser", "type": "main", "index": 0 }]]
     },
-    "Browserless — Intermarché": {
+    "FlareSolverr — Lidl": {
       "main": [[{ "node": "Parser", "type": "main", "index": 0 }]]
     },
-    "Browserless — Carrefour": {
+    "FlareSolverr — Intermarché": {
       "main": [[{ "node": "Parser", "type": "main", "index": 0 }]]
     },
     "Parser": {
