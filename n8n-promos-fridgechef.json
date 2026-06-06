@@ -1,6 +1,6 @@
 {
-  "meta": { "instanceId": "fridgechef-promos-v1" },
-  "name": "FridgeChef — Promos Alimentaires",
+  "meta": { "instanceId": "fridgechef-promos-v2" },
+  "name": "FridgeChef — Promos Alimentaires (anti-crise.fr)",
   "nodes": [
     {
       "parameters": {
@@ -50,27 +50,7 @@
     },
     {
       "parameters": {
-        "url": "https://www.bonial.fr/api/flyer-pages?country_code=FR&per_page=100&page=1",
-        "authentication": "none",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "Accept", "value": "application/json" },
-            { "name": "User-Agent", "value": "Mozilla/5.0 (compatible; FridgeChefBot/1.0)" },
-            { "name": "Accept-Language", "value": "fr-FR,fr;q=0.9" }
-          ]
-        },
-        "options": { "response": { "response": { "neverError": true } } }
-      },
-      "id": "node-003",
-      "name": "Scrape Bonial FR",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [680, 200]
-    },
-    {
-      "parameters": {
-        "url": "https://www.lidl.fr/api/v1/flyers",
+        "url": "https://anti-crise.fr/wp-json/wp/v2/posts?per_page=50&_fields=id,title,content,date&orderby=date&order=desc",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
@@ -81,21 +61,21 @@
         },
         "options": { "response": { "response": { "neverError": true } } }
       },
-      "id": "node-004",
-      "name": "Scrape Lidl FR",
+      "id": "node-003",
+      "name": "API anti-crise.fr",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [680, 400]
+      "position": [680, 300]
     },
     {
       "parameters": {
-        "jsCode": "// ─── PARSER & FILTRE ALIMENTAIRE ───────────────────────────────────────────\n// Reçoit les réponses de Bonial + Lidl, normalise tout vers le format Firestore\n// Structure cible : { item, chain, brand, price_promo, price_normal, unit, valid_until, region, category }\n\nconst FOOD_KEYWORDS = [\n  'lait','yaourt','fromage','beurre','crème','oeuf','oeufs','feta','mozzarella','camembert',\n  'poulet','boeuf','porc','veau','agneau','saumon','thon','crevette','cabillaud','jambon',\n  'tomate','carotte','courgette','oignon','salade','poireau','brocoli','poivron','avocat',\n  'pomme','banane','orange','poire','fraise','raisin','melon','pêche','citron',\n  'pâtes','riz','farine','pain','baguette','céréales','lentilles',\n  'huile','sauce','moutarde','mayonnaise','vinaigre','sel','sucre',\n  'eau','jus','café','thé','bière','vin','sirop',\n  'pizza','surgelé','conserve','haricot','maïs','soupe',\n];\n\nconst CATEGORY_MAP = [\n  [['fruit','légume','légumineuse','tomate','carotte','poivron','salade','courgette','pomme','banane','poire','pêche','fraise'], 'Fruits & Légumes'],\n  [['viande','boucherie','poulet','boeuf','porc','veau','agneau','côte','steak','filet','canard'], 'Viandes & Poissons'],\n  [['poisson','saumon','thon','crevette','cabillaud','fruits de mer','poissonnerie'], 'Viandes & Poissons'],\n  [['lait','yaourt','fromage','beurre','crème','laitier','laitière','oeuf'], 'Produits Laitiers'],\n  [['surgelé','congel'], 'Surgelés'],\n  [['pain','boulanger','viennoiserie','brioche','baguette'], 'Boulangerie'],\n  [['bière','vin','eau','jus','boisson','sodas','café','thé','sirop'], 'Boissons'],\n  [['jambon','charcuterie','saucisson','lardons','bacon'], 'Charcuterie'],\n];\n\nfunction guessCategory(name, rawCat) {\n  const lower = ((name || '') + ' ' + (rawCat || '')).toLowerCase();\n  for (const [keywords, cat] of CATEGORY_MAP) {\n    if (keywords.some(k => lower.includes(k))) return cat;\n  }\n  return 'Épicerie';\n}\n\nfunction isFood(name, rawCat) {\n  const lower = ((name || '') + ' ' + (rawCat || '')).toLowerCase();\n  return FOOD_KEYWORDS.some(k => lower.includes(k)) ||\n    CATEGORY_MAP.some(([kws]) => kws.some(k => lower.includes(k)));\n}\n\nfunction normalizeName(name) {\n  if (!name) return '';\n  return name\n    .replace(/\\d+\\s*(g|kg|ml|cl|l|litres?|pièces?|unités?|tranches?)\\b/gi, '')\n    .replace(/\\s+/g, ' ')\n    .trim()\n    .replace(/\\b\\w/g, c => c.toUpperCase());\n}\n\nfunction parseDate(raw) {\n  if (!raw) return null;\n  try {\n    return new Date(raw).toISOString().split('T')[0];\n  } catch { return null; }\n}\n\nfunction nextSunday() {\n  const d = new Date();\n  d.setDate(d.getDate() + (7 - d.getDay()) % 7 + 7);\n  return d.toISOString().split('T')[0];\n}\n\nconst deals = [];\n\nfor (const input of $input.all()) {\n  const raw = input.json;\n  \n  // Normalise : peut être un tableau ou { data: [...] } ou { items: [...] } ou { flyers: [...] }\n  const list = Array.isArray(raw) ? raw\n    : raw.data || raw.items || raw.products || raw.flyers\n    || raw.promotions || raw.offers || [];\n\n  for (const entry of list) {\n    // Extrait les champs selon différents schémas possibles\n    const name = entry.title || entry.name || entry.item || entry.product_name || '';\n    const chain = entry.chain || entry.retailer || entry.store || entry.brand_name || entry.store_name || 'Inconnu';\n    const brand = entry.brand || entry.manufacturer || null;\n    const pricePromo = parseFloat(entry.price || entry.price_promo || entry.pricePromo || entry.regular_price || 0);\n    const priceNormal = parseFloat(entry.price_normal || entry.priceNormal || entry.original_price || 0) || null;\n    const unit = entry.unit || entry.quantity_label || entry.package || null;\n    const rawCat = entry.category || entry.department || '';\n    const validUntil = parseDate(entry.valid_until || entry.validTo || entry.end_date || entry.expiry) || nextSunday();\n\n    if (!name.trim() || isNaN(pricePromo) || pricePromo <= 0) continue;\n    if (!isFood(name, rawCat)) continue;\n\n    deals.push({\n      item: normalizeName(name),\n      chain: chain.trim(),\n      brand: brand?.trim() || null,\n      price_promo: Math.round(pricePromo * 100) / 100,\n      price_normal: priceNormal ? Math.round(priceNormal * 100) / 100 : null,\n      unit: unit?.trim() || null,\n      valid_until: validUntil,\n      region: 'national',\n      category: guessCategory(name, rawCat),\n    });\n  }\n}\n\n// Dédoublonner : garder le meilleur prix par article+enseigne\nconst seen = new Map();\nconst deduped = deals.filter(d => {\n  const key = `${d.item.toLowerCase()}-${d.chain.toLowerCase()}`;\n  const existing = seen.get(key);\n  if (!existing || d.price_promo < existing.price_promo) {\n    seen.set(key, d);\n    return true;\n  }\n  return false;\n});\n\nreturn [{ json: { deals: deduped, count: deduped.length } }];\n"
+        "jsCode": "// ─── PARSER anti-crise.fr ──────────────────────────────────────────────────\n// Source : WordPress REST API anti-crise.fr\n// Chaque item = un article de blog avec titre (enseigne) + contenu HTML (produits)\n\nconst FOOD_KEYWORDS = [\n  'lait','yaourt','fromage','beurre','crème fraîche','oeuf','oeufs','feta','mozzarella',\n  'camembert','emmental','comté','chèvre','ricotta','mascarpone',\n  'poulet','boeuf','porc','veau','agneau','saumon','thon','crevette','cabillaud',\n  'jambon','lardons','bacon','saucisse','merguez','chipolata','canard','steak',\n  'tomate','carotte','courgette','oignon','salade','poireau','brocoli','poivron',\n  'avocat','concombre','champignon','épinard','aubergine','haricot vert',\n  'pomme','banane','orange','poire','fraise','raisin','melon','pêche','citron','ananas',\n  'pâtes','riz','farine','pain','baguette','céréales','lentilles','quinoa','semoule',\n  'huile','sauce tomate','moutarde','mayonnaise','ketchup','vinaigre','sel','sucre',\n  'eau','jus de','café','thé','bière','vin','sirop','limonade','lait végétal',\n  'pizza','surgelé','conserve','maïs','soupe','bouillon','confiture','miel',\n];\n\nconst CATEGORY_MAP = [\n  [['fruit','légume','pomme de terre','carotte','poivron','salade','courgette','tomate','concombre','épinard','brocoli','oignon','ail','poireau','aubergine','champignon','avocat','banane','poire','pêche','fraise','cerise','raisin','melon','ananas','orange','citron'], 'Fruits & Légumes'],\n  [['viande','boucherie','poulet','boeuf','porc','veau','agneau','côte','steak','filet','canard','lapin','dinde','rôti'], 'Viandes & Poissons'],\n  [['poisson','saumon','thon','crevette','cabillaud','moule','huître','calamar','dorade','bar','truite','sardine'], 'Viandes & Poissons'],\n  [['lait','yaourt','fromage','beurre','crème','laitier','oeuf','feta','emmental','camembert','chèvre','mozzarella'], 'Produits Laitiers'],\n  [['surgelé','congel','ice cream','glace'], 'Surgelés'],\n  [['pain','boulang','viennoiserie','brioche','baguette','croissant','madeleine'], 'Boulangerie'],\n  [['bière','vin','eau','jus','boisson','soda','café','thé','sirop','cidre','champagne'], 'Boissons'],\n  [['jambon','charcuterie','saucisson','lardons','bacon','rillette','pâté','chorizo'], 'Charcuterie'],\n];\n\nconst STORE_NAMES = [\n  'auchan','carrefour','leclerc','lidl','intermarché','super u','simply market',\n  'monoprix','franprix','netto','leader price','aldi','casino','cora','match',\n  'biocoop','naturalia','picard','les mousquetaires',\n];\n\nfunction guessCategory(text) {\n  const lower = text.toLowerCase();\n  for (const [keywords, cat] of CATEGORY_MAP) {\n    if (keywords.some(k => lower.includes(k))) return cat;\n  }\n  return 'Épicerie';\n}\n\nfunction isFood(text) {\n  const lower = text.toLowerCase();\n  return FOOD_KEYWORDS.some(k => lower.includes(k)) ||\n    CATEGORY_MAP.some(([kws]) => kws.some(k => lower.includes(k)));\n}\n\nfunction extractStoreName(title) {\n  const lower = title.toLowerCase();\n  for (const store of STORE_NAMES) {\n    if (lower.includes(store)) {\n      return store.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');\n    }\n  }\n  // Fallback : premier mot capitalisé du titre\n  const match = title.match(/Catalogue\\s+(\\w+)/i) || title.match(/Prospectus\\s+(\\w+)/i);\n  return match ? match[1] : title.split(' ')[0];\n}\n\nfunction stripHtml(html) {\n  return html\n    .replace(/<br\\s*\\/?>/gi, '\\n')\n    .replace(/<\\/p>/gi, '\\n')\n    .replace(/<\\/li>/gi, '\\n')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&#\\d+;/g, '')\n    .replace(/[ \\t]+/g, ' ')\n    .trim();\n}\n\nfunction parseDate(str) {\n  if (!str) return null;\n  try { return new Date(str).toISOString().split('T')[0]; } catch { return null; }\n}\n\nfunction nextSunday() {\n  const d = new Date();\n  d.setDate(d.getDate() + (7 - d.getDay() || 7));\n  return d.toISOString().split('T')[0];\n}\n\nconst deals = [];\nconst posts = $input.all();\n\nfor (const input of posts) {\n  const raw = input.json;\n  // L'API renvoie un tableau ou un objet unique\n  const list = Array.isArray(raw) ? raw : [raw];\n\n  for (const post of list) {\n    const title = post.title?.rendered || post.title || '';\n    const html = post.content?.rendered || post.content || '';\n    const postDate = post.date || null;\n\n    if (!html) continue;\n\n    const storeName = extractStoreName(title);\n    const text = stripHtml(html);\n    const lines = text.split('\\n').map(l => l.trim()).filter(l => l.length > 2);\n\n    // Cherche les patterns : \"Nom produit ... X,XX€\" ou \"X,XX € ... Nom\"\n    // Prix au format 1,99 / 12.50 / 0,89\n    const priceRegex = /(\\d{1,3}[,.]\\d{2})\\s*€?/g;\n\n    for (const line of lines) {\n      const priceMatches = [...line.matchAll(/(\\d{1,3}[,.]\\d{2})\\s*€/g)];\n      if (priceMatches.length === 0) continue;\n\n      // Extraire le nom : texte avant le premier prix\n      const firstPriceIdx = line.indexOf(priceMatches[0][0]);\n      let name = line.substring(0, firstPriceIdx).replace(/[-–—:|]/g, ' ').trim();\n\n      // Nettoyer le nom\n      name = name\n        .replace(/\\d+\\s*(g|kg|ml|cl|l|litres?|pièces?|unités?|x\\d+)/gi, '')\n        .replace(/\\s+/g, ' ')\n        .trim();\n\n      if (name.length < 3 || name.length > 80) continue;\n      if (!isFood(name + ' ' + line)) continue;\n\n      const pricePromo = parseFloat(priceMatches[0][1].replace(',', '.'));\n      const priceNormal = priceMatches.length > 1\n        ? parseFloat(priceMatches[1][1].replace(',', '.'))\n        : null;\n\n      if (isNaN(pricePromo) || pricePromo <= 0 || pricePromo > 200) continue;\n\n      // Extraire l'unité si mentionnée dans la ligne (ex: \"le kg\", \"la pièce\", \"500g\")\n      const unitMatch = line.match(/(le\\s+kg|la\\s+pièce|\\d+\\s*g\\b|\\d+\\s*kg\\b|\\d+\\s*cl\\b|\\d+\\s*l\\b|\\d+\\s*ml\\b)/i);\n\n      deals.push({\n        item: name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(),\n        chain: storeName,\n        brand: null,\n        price_promo: Math.round(pricePromo * 100) / 100,\n        price_normal: priceNormal && priceNormal > pricePromo ? Math.round(priceNormal * 100) / 100 : null,\n        unit: unitMatch ? unitMatch[0].trim() : null,\n        valid_until: nextSunday(),\n        region: 'national',\n        category: guessCategory(name + ' ' + line),\n      });\n    }\n  }\n}\n\n// Dédoublonner : meilleur prix par article+enseigne\nconst seen = new Map();\nconst deduped = [];\nfor (const d of deals) {\n  const key = `${d.item.toLowerCase().slice(0, 20)}-${d.chain.toLowerCase()}`;\n  const ex = seen.get(key);\n  if (!ex || d.price_promo < ex.price_promo) {\n    seen.set(key, d);\n    deduped.push(d);\n    if (ex) deduped.splice(deduped.indexOf(ex), 1);\n  }\n}\n\nreturn [{ json: { deals: deduped, count: deduped.length, source: 'anti-crise.fr' } }];\n"
       },
-      "id": "node-005",
-      "name": "Parser & Filtre Alimentaire",
+      "id": "node-004",
+      "name": "Parser anti-crise.fr",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [960, 300]
+      "position": [900, 300]
     },
     {
       "parameters": {
@@ -120,11 +100,11 @@
         "jsonBody": "={{ JSON.stringify({ deals: $json.deals }) }}",
         "options": {}
       },
-      "id": "node-006",
+      "id": "node-005",
       "name": "POST → FridgeChef Ingest",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1180, 300]
+      "position": [1120, 300]
     }
   ],
   "connections": {
@@ -132,20 +112,12 @@
       "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
     },
     "Config": {
-      "main": [
-        [
-          { "node": "Scrape Bonial FR", "type": "main", "index": 0 },
-          { "node": "Scrape Lidl FR", "type": "main", "index": 0 }
-        ]
-      ]
+      "main": [[{ "node": "API anti-crise.fr", "type": "main", "index": 0 }]]
     },
-    "Scrape Bonial FR": {
-      "main": [[{ "node": "Parser & Filtre Alimentaire", "type": "main", "index": 0 }]]
+    "API anti-crise.fr": {
+      "main": [[{ "node": "Parser anti-crise.fr", "type": "main", "index": 0 }]]
     },
-    "Scrape Lidl FR": {
-      "main": [[{ "node": "Parser & Filtre Alimentaire", "type": "main", "index": 0 }]]
-    },
-    "Parser & Filtre Alimentaire": {
+    "Parser anti-crise.fr": {
       "main": [[{ "node": "POST → FridgeChef Ingest", "type": "main", "index": 0 }]]
     }
   },
