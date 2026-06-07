@@ -80,9 +80,9 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={ \"cmd\": \"request.get\", \"url\": \"https://www.carrefour.fr/promotions\", \"maxTimeout\": 60000 }",
+        "jsonBody": "={ \"cmd\": \"request.get\", \"url\": \"https://www.carrefour.fr/promotions\", \"maxTimeout\": 120000 }",
         "options": {
-          "timeout": 90000
+          "timeout": 150000
         }
       },
       "id": "node-003a",
@@ -110,9 +110,9 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={ \"cmd\": \"request.get\", \"url\": \"https://www.lidl.fr/la-semaine-lidl\", \"maxTimeout\": 60000 }",
+        "jsonBody": "={ \"cmd\": \"request.get\", \"url\": \"https://www.lidl.fr/la-semaine-lidl\", \"maxTimeout\": 120000 }",
         "options": {
-          "timeout": 90000
+          "timeout": 150000
         }
       },
       "id": "node-003b",
@@ -140,9 +140,9 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={ \"cmd\": \"request.get\", \"url\": \"https://www.intermarche.com/promotions\", \"maxTimeout\": 60000 }",
+        "jsonBody": "={ \"cmd\": \"request.get\", \"url\": \"https://www.intermarche.com/promotions\", \"maxTimeout\": 120000 }",
         "options": {
-          "timeout": 90000
+          "timeout": 150000
         }
       },
       "id": "node-003c",
