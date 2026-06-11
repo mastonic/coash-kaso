@@ -163,7 +163,7 @@ export default function ProSéanceLanding() {
                   <span className="text-[#39FF14] drop-shadow-[0_0_20px_rgba(57,255,20,0.5)]">séances en 3 sec</span>
                 </h1>
                 <p className="text-base md:text-lg lg:text-xl text-[#9CA3AF] leading-relaxed max-w-2xl mx-auto px-2">
-                  ProSéance génère des entraînements d'élite adaptés à ta charge, analyse tes vidéos, et pilote ta saison. Pour les entraîneurs qui veulent du temps de qualité avec leurs joueurs.
+                  ProSéance génère des séances complètes selon la méthodologie FFF — chaque exercice avec son plan illustré, ses consignes et ses critères de réussite. Installable sur ton téléphone, utilisable au bord du terrain.
                 </p>
               </div>
 
@@ -226,14 +226,14 @@ export default function ProSéanceLanding() {
             {[
               {
                 icon: '⚡',
-                title: 'Générer en 3s',
-                desc: 'Séances FFF complètes. Charge J-4 à J+1. 7 écoles tactiques.',
+                title: 'Séances FFF illustrées',
+                desc: 'Méthodologie FFF : mise en train, jeu, situation, match. Chaque exercice avec son plan.',
                 details: [
-                  '🎯 Génération adapté à TON effectif',
-                  '📊 Gestion de la charge physique',
-                  '🏆 7 écoles tactiques (FR, ES, DE, NL, BR, AR, IT)',
-                  '💾 Historique des 50 meilleures séances',
-                  '📱 Intégration complète',
+                  '📐 Plan illustré de chaque exercice (joueurs, plots, flèches)',
+                  '📋 Fiches complètes : but, consignes, variantes, critères de réussite',
+                  '👶 Toutes catégories : U6-U7 → Seniors',
+                  '🖨 Impression / export PDF de la fiche de séance',
+                  '💾 Historique de vos 50 dernières séances',
                 ]
               },
               {
