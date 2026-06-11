@@ -56,3 +56,19 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ── Impression des fiches de séance ── */
+@media print {
+  body {
+    background: #fff !important;
+    color: #111827 !important;
+  }
+  .fiche-page {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}
