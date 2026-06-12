@@ -681,6 +681,7 @@ function CoachDashboardContent() {
               { icon: '🎤', title: 'Causerie IA', desc: "Ton discours d'avant-match, écrit pour toi", href: '/coach-ia' },
               { icon: '📈', title: 'Plan de cycle', desc: 'Périodisation sur plusieurs semaines, reliée aux séances', href: '/coach-ia' },
               { icon: '🔍', title: 'Débrief post-match', desc: 'Analyse du match + thème recommandé pour la semaine', href: '/coach-ia' },
+              { icon: '🥅', title: 'Coach de Tir', desc: 'Filme une frappe : vitesse, biomécanique du geste, corrections', href: '/video' },
               { icon: '🎬', title: 'Analyse Vidéo', desc: "Analysez vos matchs automatiquement avec l'IA", href: '/video' },
             ].map(f => (
               <a key={f.title} href={f.href} className="flex gap-4 rounded-xl p-2 -m-2 transition-colors hover:bg-[rgba(57,255,20,0.05)]">

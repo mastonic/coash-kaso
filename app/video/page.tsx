@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ProSeanceVision } from '@/components/coach/ProSeanceVision';
+import { ShotAnalyzer } from '@/components/coach/ShotAnalyzer';
 import { AccessGate } from '@/components/AccessGate';
 import { ToolsNav } from '@/components/ToolsNav';
 
@@ -214,6 +215,23 @@ function VideoContent() {
 
       <section className="max-w-4xl mx-auto px-4 md:px-6 py-8 md:py-12">
         <h1 className="text-3xl md:text-4xl font-black text-[#F3F4F6] mb-12">ProSéance Vision</h1>
+
+        {/* Section 0: Coach de Tir */}
+        <div className="mb-16">
+          <div className="flex items-center gap-3 mb-6">
+            <h2 className="text-2xl font-bold text-[#F3F4F6]">🥅 Coach de Tir</h2>
+            <span className="text-xs bg-[rgba(57,255,20,0.2)] text-[#39FF14] px-3 py-1 rounded-full">Vidéo · Nouveau</span>
+          </div>
+          <p className="text-[#9CA3AF] mb-6 text-sm max-w-2xl">
+            Filme une frappe au but : l'IA vision détecte le ballon, le but et le corps du tireur,
+            estime la vitesse et la distance, note la biomécanique du geste (course d'élan, pied d'appui,
+            contact, posture…) et te donne les corrections + exercices pour progresser.
+          </p>
+          <ShotAnalyzer />
+        </div>
+
+        {/* Divider */}
+        <div className="my-16 border-t border-[rgba(57,255,20,0.1)]"></div>
 
         {/* Section 1: Analyse Tactique */}
         <div className="mb-16">
