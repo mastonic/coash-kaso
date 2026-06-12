@@ -47,6 +47,11 @@ function SessionContent() {
     } catch {
       // préférences corrompues : on repart des valeurs par défaut
     }
+    // Lien profond depuis Coach IA (cycle / débrief) : /session?theme=pressing
+    const fromUrl = new URLSearchParams(window.location.search).get('theme');
+    if (fromUrl && THEMES.some((t) => t.id === fromUrl)) {
+      setTheme(fromUrl as ThemeId);
+    }
     setMounted(true);
   }, []);
 
