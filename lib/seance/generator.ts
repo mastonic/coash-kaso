@@ -42,8 +42,8 @@ function exempleSchema(): string {
 }
 
 function buildPrompt(p: SeanceParams): string {
-  return `Tu es un éducateur de football diplômé (BMF/BEF) qui prépare ses séances selon la méthodologie FFF.
-Conçois une séance complète en FRANÇAIS pour :
+  return `Tu es un éducateur de football diplômé (BMF/BEF) expert en la méthodologie FFF.
+Conçois une séance complète, RICHE EN DÉTAILS et CRÉATIVE en FRANÇAIS pour :
 - Catégorie : ${p.categorie}
 - Thème : ${themeLabel(p.theme)}
 - Effectif : ${p.effectif} joueurs
@@ -51,36 +51,68 @@ Conçois une séance complète en FRANÇAIS pour :
 - Charge du jour : ${p.charge}
 
 STRUCTURE OBLIGATOIRE (méthodologie FFF) — exactement 4 phases dans cet ordre :
-1. "echauffement" — mise en train avec ballon
-2. "jeu" ou "exercice" — premier procédé d'entraînement sur le thème
-3. "situation" ou "exercice" — deuxième procédé, plus proche du match
-4. "match" — jeu final libre à thème
+1. "echauffement" — mise en train avec ballon, progression progressive
+2. "jeu" ou "exercice" — premier procédé d'entraînement structuré sur le thème
+3. "situation" ou "exercice" — deuxième procédé, plus proche du contexte match
+4. "match" — jeu final libre à thème, sans consignes restrictives
 
-Chaque phase est une FICHE D'EXERCICE FFF complète :
-- titre, duree (minutes, somme des 4 phases ≈ ${p.duree - 5}), objectif (pour l'éducateur),
-  but (la cible concrète pour les joueurs), effectif (organisation humaine, ex "2 équipes de 4 + 2 jokers"),
-  materiel, consignes (3-5 règles de fonctionnement), variantes (2 : une plus simple, une plus difficile),
-  criteresReussite (2-3 critères observables et chiffrés),
-- schema : le SCHÉMA TACTIQUE du plan de l'exercice, au format JSON STRICT suivant
-  (coordonnées x,y en % de l'espace : x=0 gauche, x=100 droite, y=0 haut, y=100 bas) :
+TITRE GLOBAL : crée un titre accrocheur et thématique pour toute la séance (ex "Les Maestros de la Possession", "Tir Gagnant", pas juste "Séance de Possession").
+
+Chaque phase = FICHE FFF DÉTAILLÉE ET PROFESSIONNELLE :
+- titre : nom explicite et motivant
+- duree : minutes (somme ≈ ${p.duree - 5}), entre 5 et 45 min par phase
+- objectif : l'INTENTION PÉDAGOGIQUE (pour toi, coach) — détaillé, explicite sur ce qu'on cherche à développer
+- but : la CIBLE CONCRÈTE pour les joueurs (ex "marquer dans un des 2 mini-buts", "faire 5 passes sans perdre le ballon")
+- effectif : organisation COMPLÈTE (ex "2 équipes de 5 + 1 gardien + 2 jokers offensifs", détaille les rôles)
+- materiel : liste DÉTAILLÉE des équipements (nombre de ballons, plots, cones, chasubles, mini-buts, etc.)
+- consignes : 4-6 règles DE FONCTIONNEMENT CLAIRES ET PROGRESSIVES (pas juste des rappels, mais des actions concrètes)
+- variantes : TROIS VARIANTES PROGRESSIVES
+  * Variante 1 : SIMPLIFIÉE (pour les moins à l'aise, plus d'aide, moins de pression)
+  * Variante 2 : INTERMÉDIAIRE (ajuste la complexité : augmente la pression, réduit l'espace, ajoute des contraintes)
+  * Variante 3 : AVANCÉE (défi maximal : moins d'espace, tempo plus rapide, règles additionnelles, plus proches du match)
+- criteresReussite : 3-4 CRITÈRES SPÉCIFIQUES ET CHIFFRÉS (ex "80% de réussite au tir", "5 passes min avant de tirer", "défense qui repique en moins de 3 sec")
+- conseilCoach : CONSEIL PRATIQUE pour toi (observation clé, ajustement possible, piège à éviter, points forts à valoriser)
+- schema : SCHÉMA TACTIQUE du plan : disposition, mouvement type, action clé
+  Format JSON STRICT (coordonnées x,y en % : x=0 gauche, x=100 droite, y=0 haut, y=100 bas) :
 ${exempleSchema()}
 
-Règles du schéma :
-- terrain.longueur / terrain.largeur = dimensions RÉELLES en mètres de l'espace de travail, adaptées à la catégorie ${p.categorie}.
+Règles du schéma tactique :
+- terrain.longueur / terrain.largeur = dimensions RÉELLES en mètres, adaptées à ${p.categorie} (ex : U8 = petit terrain 20×15, Seniors = grand 40×30).
 - equipe : "A" (bleus), "B" (rouges), "J" (joker jaune), "G" (gardien).
-- fleches.type : "passe" (trajectoire du ballon), "deplacement" (course sans ballon), "conduite" (dribble/conduite de balle), "tir".
-- Place TOUS les éléments nécessaires : joueurs des deux équipes, plots délimitant l'espace, ballon(s), buts si l'exercice en utilise, zones si pertinent.
-- Le schéma doit raconter UNE action type de l'exercice (2 à 5 flèches cohérentes).
-- Maximum ${p.effectif} joueurs par schéma (gardiens compris).
+- fleches.type : "passe" (ballon), "deplacement" (course sans ballon), "conduite" (dribble), "tir".
+- Inclure TOUS les éléments : joueurs, plots délimitant l'espace, ballon(s), buts, zones si pertinent.
+- Une ACTION TYPIQUE cohérente : 2-5 flèches qui racontent une séquence réaliste de l'exercice.
+- Max ${p.effectif} joueurs par schéma (gardiens compris).
 
-Adapte contenus, espaces et vocabulaire à la catégorie ${p.categorie} (espaces réduits et consignes simples pour les plus jeunes).
+CONTENU & TONALITÉ :
+- Sois CRÉATIF ET VARIÉ : change les approches entre phases (pas la même structure 4× fois).
+- DÉTAILLE CHAQUE CHAMP : descriptions longues, exemples concrets, explications pédagogiques.
+- Utilise un ton MOTIVANT ET PROFESSIONNEL (langage de coach, pas de clichés).
+- PROGRESSIVITÉ : chaque phase prépare la suivante, les variantes dessinent une progression claire.
+- Pour la catégorie ${p.categorie} : adapte les ESPACES (+ petits pour jeunes), les DUREES (- longues), le VOCABULAIRE (simple mais précis).
 
-Réponds UNIQUEMENT avec ce JSON (aucun texte autour) :
+Réponds UNIQUEMENT avec ce JSON valide (aucun texte autour, aucune accolade mal fermée) :
 {
   "titre": string,
   "objectif": string,
   "materiel": string,
-  "phases": [ { "procede": "echauffement"|"jeu"|"exercice"|"situation"|"match", "titre": string, "duree": number, "objectif": string, "but": string, "effectif": string, "materiel": string, "consignes": string[], "variantes": string[], "criteresReussite": string[], "schema": {...} }, ... 4 phases ... ],
+  "phases": [
+    {
+      "procede": "echauffement"|"jeu"|"exercice"|"situation"|"match",
+      "titre": string,
+      "duree": number,
+      "objectif": string,
+      "but": string,
+      "effectif": string,
+      "materiel": string,
+      "consignes": string[],
+      "variantes": string[],
+      "criteresReussite": string[],
+      "conseilCoach": string,
+      "schema": {...}
+    },
+    ... 4 phases ...
+  ],
   "retourAuCalme": string,
   "conseilsCoach": string[]
 }`;
