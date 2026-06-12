@@ -2,49 +2,67 @@
 
 import { useState } from 'react';
 import { LeadModal } from './LeadModal';
+import { SchemaExercice } from '@/components/seance/SchemaExercice';
+import { buildSeance } from '@/lib/seance/library';
+import { PROCEDE_LABELS, THEMES, type Seance, type ThemeId } from '@/lib/seance/schema';
 
+/**
+ * Démo réelle du générateur : construit une vraie séance (bibliothèque
+ * intégrée, côté client) et affiche le plan illustré de la phase principale.
+ */
 export function MiniGeneratorDemo() {
-  const [theme, setTheme] = useState('possession');
+  const [theme, setTheme] = useState<ThemeId>('possession');
   const [loading, setLoading] = useState(false);
-  const [generated, setGenerated] = useState(false);
+  const [seance, setSeance] = useState<Seance | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const generateDemo = async () => {
     setLoading(true);
-    setGenerated(false);
-    // Simule 2 secondes de génération
-    await new Promise(r => setTimeout(r, 2000));
+    setSeance(null);
+    // Petit délai pour le feedback visuel
+    await new Promise((r) => setTimeout(r, 1200));
+    setSeance(
+      buildSeance({
+        theme,
+        categorie: 'U14-U15',
+        effectif: 14,
+        duree: 90,
+        charge: 'Modérée',
+      })
+    );
     setLoading(false);
-    setGenerated(true);
   };
 
-  const THEMES = ['possession', 'pressing', 'transitions', 'controle', 'vitesse'];
+  const phasePrincipale = seance?.phases[1];
 
   return (
     <div className="relative max-w-2xl mx-auto px-4 md:px-0">
       {/* Header */}
       <div className="text-center mb-6 md:mb-8 animate-fade-in-up">
         <h3 className="text-xl md:text-2xl font-black text-[#F3F4F6] mb-2 md:mb-3">Essaie ProSéance</h3>
-        <p className="text-xs md:text-base text-[#9CA3AF]">Génère une séance d'entraînement en 3 secondes</p>
+        <p className="text-xs md:text-base text-[#9CA3AF]">
+          Une vraie séance méthodologie FFF, avec le plan de chaque exercice
+        </p>
       </div>
 
       {/* Demo Container */}
       <div className="bg-[#141E1A] border border-[rgba(57,255,20,0.2)] rounded-2xl p-4 md:p-8 space-y-4 md:space-y-6 animate-fade-in-up">
         {/* Input */}
-        {!generated && (
+        {!seance && (
           <div className="space-y-3 md:space-y-4 animate-fade-in-up">
             <div>
-              <label className="block text-[#F3F4F6] font-bold mb-2 md:mb-3 uppercase text-xs md:text-sm">
-                Thème de Séance
+              <label htmlFor="demo-theme" className="block text-[#F3F4F6] font-bold mb-2 md:mb-3 uppercase text-xs md:text-sm">
+                Thème de séance
               </label>
               <select
+                id="demo-theme"
                 value={theme}
-                onChange={(e) => setTheme(e.target.value)}
+                onChange={(e) => setTheme(e.target.value as ThemeId)}
                 className="w-full bg-[#0A0F0D] border border-[rgba(57,255,20,0.2)] rounded-lg px-3 md:px-4 py-2 md:py-3 text-[#F3F4F6] text-sm focus:outline-none focus:border-[#39FF14] focus:shadow-[0_0_20px_rgba(57,255,20,0.3)] transition-all"
               >
                 {THEMES.map((t) => (
-                  <option key={t} value={t} className="bg-[#0A0F0D]">
-                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                  <option key={t.id} value={t.id} className="bg-[#0A0F0D]">
+                    {t.label}
                   </option>
                 ))}
               </select>
@@ -61,7 +79,7 @@ export function MiniGeneratorDemo() {
                   Génération...
                 </span>
               ) : (
-                '⚡ Générer Séance Démo'
+                '⚡ Générer une séance démo'
               )}
             </button>
           </div>
@@ -79,45 +97,38 @@ export function MiniGeneratorDemo() {
           </div>
         )}
 
-        {/* Generated Content */}
-        {generated && (
+        {/* Generated Content : vraie séance */}
+        {seance && phasePrincipale && (
           <div className="space-y-3 md:space-y-4 animate-fade-in-up">
-            {/* Échauffement */}
+            {/* Chronologie des 4 phases */}
+            <div className="flex flex-wrap gap-1.5">
+              {seance.phases.map((ph, i) => (
+                <span
+                  key={i}
+                  className="rounded-full border border-[rgba(57,255,20,0.3)] bg-[rgba(57,255,20,0.08)] px-2.5 py-1 text-[10px] font-bold text-[#39FF14]"
+                >
+                  {PROCEDE_LABELS[ph.procede]} · {ph.duree}′
+                </span>
+              ))}
+            </div>
+
+            {/* Phase principale avec son plan */}
             <div className="bg-[#0A0F0D] border border-[#39FF14] rounded-lg p-3 md:p-4">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-[#39FF14] font-bold text-xs md:text-sm uppercase">⚡ Échauffement</h4>
-                <span className="text-[#9CA3AF] text-xs">15min</span>
+              <div className="flex items-center justify-between mb-2 gap-2">
+                <h4 className="text-[#39FF14] font-bold text-xs md:text-sm uppercase">
+                  {phasePrincipale.titre}
+                </h4>
+                <span className="text-[#9CA3AF] text-xs whitespace-nowrap">⏱ {phasePrincipale.duree} min</span>
               </div>
-              <p className="text-[#9CA3AF] text-xs md:text-sm line-clamp-2">
-                Possession en carré 4v4 avec contrainte tactique selon l'école {theme}
+              <SchemaExercice schema={phasePrincipale.schema} />
+              <p className="mt-3 text-[#9CA3AF] text-xs md:text-sm">
+                <span className="font-bold text-[#F3F4F6]">But : </span>
+                {phasePrincipale.but}
               </p>
             </div>
 
-            {/* Jeu Principal */}
-            <div className="bg-[#0A0F0D] border border-[#10B981] rounded-lg p-3 md:p-4">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-[#10B981] font-bold text-xs md:text-sm uppercase">🎮 Jeu Principal</h4>
-                <span className="text-[#9CA3AF] text-xs">25min</span>
-              </div>
-              <p className="text-[#9CA3AF] text-xs md:text-sm line-clamp-2">
-                Situation de match 8v8 + 2 jokers avec focus sur transitions rapides
-              </p>
-            </div>
-
-            {/* Situation */}
-            <div className="bg-[#0A0F0D] border border-[rgba(57,255,20,0.2)] rounded-lg p-3 md:p-4">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-[#F3F4F6] font-bold text-xs md:text-sm uppercase">🏟️ Situation</h4>
-                <span className="text-[#9CA3AF] text-xs">20min</span>
-              </div>
-              <p className="text-[#9CA3AF] text-xs md:text-sm line-clamp-2">
-                3 équipes de 4 en possession progressive avec cibles défensives
-              </p>
-            </div>
-
-            {/* Reset Button */}
             <button
-              onClick={() => setGenerated(false)}
+              onClick={() => setSeance(null)}
               className="w-full mt-2 md:mt-4 border-2 border-[#39FF14] text-[#39FF14] font-bold py-2 md:py-3 px-3 md:px-4 rounded-lg hover:bg-[rgba(57,255,20,0.1)] transition-all uppercase text-xs md:text-sm"
             >
               ← Générer une autre séance
@@ -126,27 +137,22 @@ export function MiniGeneratorDemo() {
         )}
       </div>
 
-      {/* Paywall Blur Effect - Hook d'inscription */}
-      <div className="absolute inset-0 bottom-0 h-20 md:h-32 bg-gradient-to-t from-[#0A0F0D] via-transparent to-transparent rounded-2xl pointer-events-none" />
-
-      <div className="absolute bottom-4 md:bottom-8 left-4 md:left-0 right-4 md:right-0 text-center pointer-events-auto z-10">
-        <p className="text-[#9CA3AF] text-xs md:text-sm mb-2 md:mb-3 whitespace-nowrap">
-          ⭐ Accès complet + 50+ séances IA
+      {/* Hook d'inscription */}
+      <div className="mt-6 text-center">
+        <p className="text-[#9CA3AF] text-xs md:text-sm mb-2 md:mb-3">
+          ⭐ La séance complète : 4 fiches détaillées, consignes, variantes, impression PDF
         </p>
         <button
           onClick={() => setIsModalOpen(true)}
           className="group relative px-4 md:px-8 py-2 md:py-3 bg-[#39FF14] text-[#0A0F0D] font-bold rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-[0_0_50px_rgba(57,255,20,0.8)] animate-pop text-xs md:text-sm whitespace-nowrap"
         >
           <div className="absolute inset-0 opacity-0 group-hover:opacity-30 rounded-lg bg-white transition-opacity duration-300" />
-          <span className="relative z-10">Débloquer la séance (Gratuit)</span>
+          <span className="relative z-10">Débloquer la séance complète (Gratuit)</span>
         </button>
       </div>
 
       {/* Lead Modal */}
-      <LeadModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
+      <LeadModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 }

@@ -144,6 +144,12 @@ function TeamContent() {
       const email = localStorage.getItem('mastro_user');
       if (!email) return;
 
+      if (!storage) {
+        setPhotoError({ ...photoError, [playerId]: 'Stockage photo non configuré' });
+        setTimeout(() => setPhotoError(prev => { const next = { ...prev }; delete next[playerId]; return next; }), 3000);
+        return;
+      }
+
       const storagePath = `teams/${email}/players/${playerId}/photo.jpg`;
       const storageRef = ref(storage, storagePath);
 

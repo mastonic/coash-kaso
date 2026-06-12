@@ -5,16 +5,21 @@ import Link from 'next/link';
 import { AccessGate } from '@/components/AccessGate';
 import { ToolsNav } from '@/components/ToolsNav';
 
-import { SessionData } from '@/lib/gemini';
+import { themeLabel } from '@/lib/seance/schema';
 
 interface Session {
   id: string;
+  version?: number;
   theme: string;
-  load: string;
-  school: string;
-  playerCount: number;
+  load?: string;
+  school?: string;
+  playerCount?: number;
+  categorie?: string;
+  effectif?: number;
+  duree?: number;
+  charge?: string;
   date: string;
-  content?: SessionData;
+  content?: unknown;
 }
 
 function HistoryContent() {
@@ -26,7 +31,9 @@ function HistoryContent() {
     const stored = localStorage.getItem('mastro_sessions');
     if (stored) {
       try {
-        setSessions(JSON.parse(stored));
+        const parsed = JSON.parse(stored) as Session[];
+        // Plus récentes en premier
+        setSessions([...parsed].reverse());
       } catch (e) {
         console.error('Error parsing sessions:', e);
       }
@@ -66,18 +73,27 @@ function HistoryContent() {
                   <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 md:gap-4">
                     <div className="flex-1">
                       <h3 className="text-base md:text-lg font-black text-[#F3F4F6] mb-2 group-hover:text-[#39FF14] transition-colors">
-                        {session.theme.charAt(0).toUpperCase() + session.theme.slice(1)}
+                        {themeLabel(session.theme)}
                       </h3>
                       <div className="flex gap-2 flex-wrap">
+                        {(session.categorie || session.school) && (
+                          <span className="bg-[rgba(57,255,20,0.1)] text-[#39FF14] px-2 md:px-3 py-1 rounded-full text-xs font-bold">
+                            {session.categorie ?? session.school}
+                          </span>
+                        )}
                         <span className="bg-[rgba(57,255,20,0.1)] text-[#39FF14] px-2 md:px-3 py-1 rounded-full text-xs font-bold">
-                          {session.school}
+                          {session.effectif ?? session.playerCount} joueurs
                         </span>
-                        <span className="bg-[rgba(57,255,20,0.1)] text-[#39FF14] px-2 md:px-3 py-1 rounded-full text-xs font-bold">
-                          {session.playerCount}👥
-                        </span>
-                        <span className="bg-[rgba(57,255,20,0.1)] text-[#39FF14] px-2 md:px-3 py-1 rounded-full text-xs font-bold">
-                          {session.load}
-                        </span>
+                        {session.duree && (
+                          <span className="bg-[rgba(57,255,20,0.1)] text-[#39FF14] px-2 md:px-3 py-1 rounded-full text-xs font-bold">
+                            {session.duree} min
+                          </span>
+                        )}
+                        {(session.charge || session.load) && (
+                          <span className="bg-[rgba(57,255,20,0.1)] text-[#39FF14] px-2 md:px-3 py-1 rounded-full text-xs font-bold">
+                            {session.charge ?? session.load}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="text-left md:text-right">

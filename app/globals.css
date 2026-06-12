@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@config "../tailwind.config.ts";
 
 :root {
   --background: #ffffff;
@@ -55,4 +56,181 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ── Impression des fiches de séance ── */
+@media print {
+  body {
+    background: #fff !important;
+    color: #111827 !important;
+  }
+  .fiche-page {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Motion design — landing page
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Révélation au scroll (IntersectionObserver via <Reveal/>) */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Flèche tactique qui se dessine */
+@keyframes drawLine {
+  0% { stroke-dashoffset: var(--line-len, 300); opacity: 0; }
+  8% { opacity: 1; }
+  60%, 100% { stroke-dashoffset: 0; opacity: 1; }
+}
+.anim-draw {
+  stroke-dasharray: var(--line-len, 300);
+  stroke-dashoffset: var(--line-len, 300);
+  animation: drawLine var(--draw-dur, 1.4s) ease-out forwards;
+  animation-delay: var(--draw-delay, 0s);
+}
+
+/* Apparition "pop" des joueurs / éléments du schéma */
+@keyframes popEl {
+  0% { opacity: 0; transform: scale(0.2); }
+  70% { opacity: 1; transform: scale(1.18); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.anim-pop-el {
+  opacity: 0;
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: popEl 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: var(--pop-delay, 0s);
+}
+
+/* Halo pulsé (radar IA, points d'intérêt) */
+@keyframes pulseRing {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+.anim-pulse-ring {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: pulseRing 1.6s ease-out infinite;
+  animation-delay: var(--ring-delay, 0s);
+}
+
+/* Curseur de saisie (machine à écrire) */
+@keyframes caretBlink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.anim-caret {
+  animation: caretBlink 0.8s step-end infinite;
+}
+
+/* Bandeau défilant des thèmes */
+@keyframes marqueeScroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.anim-marquee {
+  animation: marqueeScroll 28s linear infinite;
+}
+.anim-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Reflet qui balaye le titre */
+@keyframes textShine {
+  0%, 60% { background-position: 120% center; }
+  100% { background-position: -20% center; }
+}
+.anim-text-shine {
+  background: linear-gradient(
+    100deg,
+    #39ff14 0%,
+    #39ff14 40%,
+    #d4ffd0 50%,
+    #39ff14 60%,
+    #39ff14 100%
+  );
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: textShine 4.5s ease-in-out infinite;
+}
+
+/* Entrée de scène (tour produit) */
+@keyframes sceneIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.anim-scene-in {
+  animation: sceneIn 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Lévitation douce (mockups) */
+@keyframes hoverFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.anim-hover-float {
+  animation: hoverFloat 5s ease-in-out infinite;
+}
+
+/* Ligne de connexion verticale qui se trace */
+@keyframes growHeight {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+.anim-grow-y {
+  transform-origin: top;
+  animation: growHeight 1s ease-out forwards;
+  animation-delay: var(--grow-delay, 0s);
+  transform: scaleY(0);
+}
+
+/* Respect de prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .anim-draw, .anim-pop-el, .anim-pulse-ring, .anim-marquee,
+  .anim-text-shine, .anim-scene-in, .anim-hover-float, .anim-grow-y,
+  .animate-float, .animate-float-slow {
+    animation: none !important;
+    opacity: 1 !important;
+    stroke-dashoffset: 0 !important;
+    transform: none !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Passe du héros : se dessine puis s'efface, en boucle (synchro ballon 9s) */
+@keyframes heroPass {
+  0% { stroke-dashoffset: var(--line-len, 300); opacity: 0; }
+  2% { opacity: 0.95; }
+  15% { stroke-dashoffset: 0; opacity: 0.95; }
+  24% { opacity: 0; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+.anim-hero-pass {
+  stroke-dasharray: var(--line-len, 300);
+  animation: heroPass 9s linear infinite;
+  animation-delay: var(--pass-delay, 0s);
+}
+@media (prefers-reduced-motion: reduce) {
+  .anim-hero-pass { animation: none !important; opacity: 0.5 !important; stroke-dashoffset: 0 !important; }
 }
