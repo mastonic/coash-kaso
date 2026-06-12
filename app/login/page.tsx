@@ -39,8 +39,20 @@ export default function LoginPage() {
       if (data.hasAccess) {
         localStorage.setItem('mastro_user', email.toLowerCase());
         router.push('/coach-dashboard');
+      } else if (data.status === 'expired') {
+        setError(
+          'Ton essai de 7 jours est terminé. Passe à Coach Pro pour continuer, ou contacte ProSéance pour prolonger ton essai.'
+        );
+        setLoading(false);
+      } else if (data.status === 'pending') {
+        setError(
+          'Ton compte existe mais n’est pas encore activé. L’activation est en cours — réessaie un peu plus tard.'
+        );
+        setLoading(false);
       } else {
-        setError('Email non reconnu ou accès non encore activé.');
+        setError(
+          'Email non reconnu. Inscris-toi d’abord depuis la page d’accueil (essai gratuit 7 jours).'
+        );
         setLoading(false);
       }
     } catch (err) {

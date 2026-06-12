@@ -9,16 +9,18 @@ interface User {
   category: string;
   timestamp: string;
   access: {
-    status: 'active' | 'pending';
+    status: 'active' | 'pending' | 'expired';
     activatedAt?: string;
   };
-  plan?: string;
+  plan?: string | null;
+  trialEndsAt?: string | null;
 }
 
 interface Stats {
   total: number;
   active: number;
   pending: number;
+  expired?: number;
 }
 
 export default function AdminUsersPage() {
@@ -122,7 +124,7 @@ export default function AdminUsersPage() {
   const handleActivateAll = async () => {
     setActionLoading('all');
     try {
-      for (const user of users.filter(u => u.access.status === 'pending')) {
+      for (const user of users.filter(u => u.access.status !== 'active')) {
         await fetch('/api/admin/activate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -180,7 +182,7 @@ export default function AdminUsersPage() {
         </div>
 
         <div className="bg-[#141E1A] border border-[rgba(57,255,20,0.3)] rounded-2xl p-6 mb-6">
-          <div className="grid grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
             <div className="bg-[rgba(57,255,20,0.1)] p-4 rounded-lg">
               <p className="text-[#9CA3AF] text-sm">Total</p>
               <p className="text-2xl font-black text-[#39FF14]">{stats.total}</p>
@@ -189,19 +191,25 @@ export default function AdminUsersPage() {
               <p className="text-[#9CA3AF] text-sm">Activés</p>
               <p className="text-2xl font-black text-[#39FF14]">{stats.active}</p>
             </div>
+            <div className="bg-[rgba(248,113,113,0.08)] p-4 rounded-lg">
+              <p className="text-[#9CA3AF] text-sm">Expirés</p>
+              <p className="text-2xl font-black text-red-400">{stats.expired ?? 0}</p>
+            </div>
             <div className="bg-[rgba(57,255,20,0.1)] p-4 rounded-lg">
               <p className="text-[#9CA3AF] text-sm">En attente</p>
               <p className="text-2xl font-black text-[#39FF14]">{stats.pending}</p>
             </div>
           </div>
 
-          {stats.pending > 0 && (
+          {stats.pending + (stats.expired ?? 0) > 0 && (
             <button
               onClick={handleActivateAll}
               disabled={actionLoading === 'all'}
               className="w-full bg-[#39FF14] text-[#0A0F0D] font-bold py-2 rounded-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100"
             >
-              {actionLoading === 'all' ? '⏳ Activation...' : `⚡ Tout activer (${stats.pending})`}
+              {actionLoading === 'all'
+                ? '⏳ Activation...'
+                : `⚡ Tout activer — 7 jours (${stats.pending + (stats.expired ?? 0)})`}
             </button>
           )}
         </div>
@@ -268,20 +276,35 @@ export default function AdminUsersPage() {
                           className={`px-3 py-1 rounded-full text-xs font-bold ${
                             user.access.status === 'active'
                               ? 'bg-[rgba(57,255,20,0.2)] text-[#39FF14]'
-                              : 'bg-[rgba(156,163,175,0.1)] text-[#9CA3AF]'
+                              : user.access.status === 'expired'
+                                ? 'bg-red-500/15 text-red-400'
+                                : 'bg-[rgba(156,163,175,0.1)] text-[#9CA3AF]'
                           }`}
+                          title={
+                            user.access.status === 'active' && user.plan === 'trial' && user.trialEndsAt
+                              ? `Essai jusqu'au ${new Date(user.trialEndsAt).toLocaleDateString('fr-FR')}`
+                              : undefined
+                          }
                         >
-                          {user.access.status === 'active' ? '✓ ACTIF' : '⏳ EN ATTENTE'}
+                          {user.access.status === 'active'
+                            ? '✓ ACTIF'
+                            : user.access.status === 'expired'
+                              ? '⏰ EXPIRÉ'
+                              : '⏳ EN ATTENTE'}
                         </span>
                       </td>
                       <td className="py-3 px-4">
-                        {user.access.status === 'pending' ? (
+                        {user.access.status !== 'active' ? (
                           <button
                             onClick={() => handleActivate(user.email)}
                             disabled={actionLoading === user.email}
                             className="text-sm bg-[#39FF14] text-[#0A0F0D] px-3 py-1 rounded font-bold hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100"
                           >
-                            {actionLoading === user.email ? '⏳' : '⚡ Activer'}
+                            {actionLoading === user.email
+                              ? '⏳'
+                              : user.access.status === 'expired'
+                                ? '🔄 Réactiver 7 j'
+                                : '⚡ Activer'}
                           </button>
                         ) : (
                           <button
