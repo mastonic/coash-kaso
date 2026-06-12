@@ -91,6 +91,8 @@ export interface PhaseSeance {
   consignes: string[];
   variantes: string[];
   criteresReussite: string[];
+  /** Conseil pratique pour le coach (observation, ajustement, piège à éviter) */
+  conseilCoach?: string;
   schema: SchemaExercice;
 }
 
@@ -324,6 +326,7 @@ export function normalisePhase(
     criteresReussite: strArray(d.criteresReussite).length
       ? strArray(d.criteresReussite)
       : fallback.criteresReussite,
+    conseilCoach: str(d.conseilCoach, fallback.conseilCoach ?? ''),
     schema: normaliseSchema(d.schema) ?? fallback.schema,
   };
 }

@@ -226,6 +226,12 @@ function FichePhase({
               ))}
             </ul>
           </div>
+          {phase.conseilCoach && (
+            <div className={`rounded-lg p-3 ${print ? 'bg-blue-50 border border-blue-200' : 'bg-blue-950/30 border border-blue-900/50'}`}>
+              <h4 className={`text-xs font-black uppercase tracking-wider ${print ? 'text-blue-700' : 'text-blue-400'}`}>💡 Conseil coach</h4>
+              <p className={`mt-1 text-sm ${txt}`}>{phase.conseilCoach}</p>
+            </div>
+          )}
         </div>
       </div>
     </article>

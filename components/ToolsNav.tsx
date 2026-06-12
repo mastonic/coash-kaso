@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 interface ToolsNavProps {
-  currentPage?: 'session' | 'history' | 'team' | 'video' | 'coach-dashboard' | 'rt-dashboard' | 'presence' | 'schedule';
+  currentPage?: 'session' | 'history' | 'team' | 'video' | 'coach-dashboard' | 'rt-dashboard' | 'presence' | 'schedule' | 'exercices' | 'coach-ia';
 }
 
 export function ToolsNav({ currentPage }: ToolsNavProps) {
@@ -20,6 +20,8 @@ export function ToolsNav({ currentPage }: ToolsNavProps) {
   const navLinks = [
     { href: '/coach-dashboard', label: 'Dashboard', icon: '🏠', key: 'coach-dashboard' },
     { href: '/session', label: 'Générer', icon: '⚡', key: 'session' },
+    { href: '/exercices', label: 'Exercices', icon: '📚', key: 'exercices' },
+    { href: '/coach-ia', label: 'Coach IA', icon: '🧠', key: 'coach-ia' },
     { href: '/schedule', label: 'Programme', icon: '📅', key: 'schedule' },
     { href: '/team', label: 'Équipe', icon: '👥', key: 'team' },
     { href: '/presence', label: 'Présence', icon: '✅', key: 'presence' },
