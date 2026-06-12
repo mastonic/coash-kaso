@@ -34,17 +34,39 @@ export async function GET(request: NextRequest) {
       accessMap.set(doc.id, {
         status: doc.data().status,
         activatedAt: doc.data().activatedAt,
+        plan: doc.data().plan,
+        trialEndsAt: doc.data().trialEndsAt,
       });
     });
 
-    // Merge leads with access status
-    const usersData = leads.map(lead => ({
-      ...lead,
-      access: accessMap.get(lead.email) || { status: 'pending', activatedAt: null },
-    }));
+    // Merge leads with access status (un même email peut avoir plusieurs leads)
+    const usersData = leads.map(lead => {
+      const access = accessMap.get(lead.email) || { status: 'pending', activatedAt: null };
+      return {
+        ...lead,
+        plan: access.plan ?? null,
+        trialEndsAt: access.trialEndsAt ?? null,
+        access,
+      };
+    });
 
-    // Calculate stats
+    // Comptes activés directement (sans lead associé)
+    accessMap.forEach((access, email) => {
+      if (!usersData.some(u => u.email === email)) {
+        usersData.push({
+          id: email,
+          email,
+          category: '—',
+          timestamp: access.activatedAt || new Date(0).toISOString(),
+          plan: access.plan ?? null,
+          trialEndsAt: access.trialEndsAt ?? null,
+          access,
+        });
+      }
+    });
+
     const activeCount = usersData.filter(u => u.access.status === 'active').length;
+    const expiredCount = usersData.filter(u => u.access.status === 'expired').length;
     const totalCount = usersData.length;
 
     return NextResponse.json({
@@ -53,7 +75,8 @@ export async function GET(request: NextRequest) {
       stats: {
         total: totalCount,
         active: activeCount,
-        pending: totalCount - activeCount,
+        expired: expiredCount,
+        pending: totalCount - activeCount - expiredCount,
       },
     });
   } catch (error: any) {

@@ -1,49 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { adminDb } from '@/lib/firebase-admin';
 
+/**
+ * Activation d'un accès par l'admin.
+ *
+ * Relance un essai complet : statut actif ET nouvelle date d'expiration
+ * (sinon un compte dont l'essai est passé ré-expire au login suivant).
+ */
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    const { email, days } = await request.json();
 
     if (!email || typeof email !== 'string') {
+      return NextResponse.json({ error: 'Email requis' }, { status: 400 });
+    }
+
+    if (!adminDb) {
       return NextResponse.json(
-        { error: 'Email requis' },
-        { status: 400 }
+        { error: 'Firebase non configuré sur ce déploiement' },
+        { status: 503 }
       );
     }
 
-    const admin = await import('firebase-admin');
+    const normalizedEmail = email.toLowerCase();
+    const trialDays = Number.isFinite(Number(days))
+      ? Math.min(365, Math.max(1, Math.round(Number(days))))
+      : 7;
+    const now = new Date();
+    const trialEndsAt = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000);
 
-    if (!admin.apps.length) {
-      const serviceAccount = {
-        project_id: process.env.FIREBASE_PROJECT_ID,
-        private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        client_email: process.env.FIREBASE_CLIENT_EMAIL,
-      };
+    const ref = adminDb.collection('users_access').doc(normalizedEmail);
+    const existing = await ref.get();
+    const plan = existing.data()?.plan || 'trial';
 
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount as any),
-      });
-    }
-
-    const db = admin.firestore();
-
-    // Activate user in users_access collection
-    await db.collection('users_access').doc(email.toLowerCase()).set({
-      email: email.toLowerCase(),
-      status: 'active',
-      activatedAt: new Date().toISOString(),
-    }, { merge: true });
+    await ref.set(
+      {
+        email: normalizedEmail,
+        status: 'active',
+        plan,
+        activatedAt: now.toISOString(),
+        // Seuls les essais expirent ; les plans payants n'ont pas de date de fin
+        ...(plan === 'trial' ? { trialEndsAt: trialEndsAt.toISOString() } : {}),
+      },
+      { merge: true }
+    );
 
     return NextResponse.json({
       success: true,
-      email: email.toLowerCase(),
-      message: 'User activated',
+      email: normalizedEmail,
+      plan,
+      trialEndsAt: plan === 'trial' ? trialEndsAt.toISOString() : null,
+      message:
+        plan === 'trial'
+          ? `Accès activé pour ${trialDays} jours`
+          : 'Accès activé',
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error activating user:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to activate user' },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : 'Failed to activate user';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
