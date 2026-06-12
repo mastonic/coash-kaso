@@ -356,6 +356,18 @@ export default function ProSéanceLanding() {
                 ],
               },
               {
+                icon: '🥅',
+                title: 'Coach de Tir (vision IA)',
+                desc: 'Filme une frappe : télémétrie, biomécanique du geste et corrections.',
+                details: [
+                  'Vitesse et distance estimées de la frappe',
+                  'But / raté / arrêté détecté automatiquement',
+                  '6 critères du geste notés /10',
+                  'Corrections + exercices personnalisés',
+                  'Du tir analysé à la séance Finition en 1 clic',
+                ],
+              },
+              {
                 icon: '📅',
                 title: 'Piloter la saison',
                 desc: 'Programmation, présences, analyse vidéo, multi-équipes.',
