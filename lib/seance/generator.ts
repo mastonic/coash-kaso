@@ -42,6 +42,34 @@ function exempleSchema(): string {
   });
 }
 
+function schemaInstructions(effectif: number): string {
+  return `
+RÈGLES DU SCHÉMA TACTIQUE (CRITIQUES — respecte-les à la lettre) :
+
+1. JOUEURS : Exactement le bon nombre correspondant à l'effectif de la phase (≤ ${effectif}). Positions réalistes sur le terrain, pas tous empilés au centre.
+
+2. DISPOSITION PAR PROCÉDÉ :
+   - "echauffement" : joueurs dispersés sur tout le terrain, formes circulaires, géométriques ou en couloirs d'activation.
+   - "jeu" : deux blocs distincts (équipe A vs équipe B), joueurs répartis en largeur et en profondeur, jokers aux périphéries.
+   - "exercice" : colonnes ou ateliers, flèches montrant le circuit ballon/joueurs, plots délimitant les couloirs.
+   - "situation" : attaquants d'un côté (30-45% du terrain), défenseurs de l'autre, gardien au but.
+   - "match" : équipe A (x=5-45) vs équipe B (x=55-95), gardiens aux buts opposés, ballon au centre.
+
+3. COHÉRENCE AVEC LE "BUT" : Le schéma doit illustrer exactement l'action principale décrite dans "but". Si "but" mentionne une passe + tir → les flèches montrent passe puis tir. Si "but" mentionne un pressing → les flèches montrent des déplacements défensifs vers le porteur.
+
+4. FLÈCHES : Minimum 3 flèches formant une séquence réaliste et lisible (pas des flèches qui se croisent ou pointent hors terrain). Types : "passe" (ballon), "deplacement" (course sans ballon), "conduite" (dribble), "tir".
+
+5. TERRAIN : Dimensions RÉELLES en mètres adaptées à la phase (échauffement petit = 12-20m, exercice technique = 15-25m, jeu/situation = 25-40m, match final = 40-60m).
+
+6. ÉLÉMENTS OBLIGATOIRES selon le procédé :
+   - Échauffement : plots aux coins minimum
+   - Jeu/situation : plots délimitant l'espace + ballon(s)
+   - Exercice : plots matérialisant le circuit + ballon
+   - Match : buts (grand si ≥10 joueurs, mini sinon) + plots + ballon au centre
+
+7. VARIÉTÉ (pour les alternatives) : Chaque option d'une même phase doit avoir une configuration DIFFÉRENTE — terrain différent (carré vs rectangle vs couloir), disposition différente, types de flèches différents.`;
+}
+
 function ecoleContext(p: SeanceParams): string {
   if (!p.ecole) return '';
   const ecole = ECOLES.find((e) => e.id === p.ecole);
@@ -90,14 +118,7 @@ Chaque phase = FICHE FFF DÉTAILLÉE ET PROFESSIONNELLE :
 - schema : SCHÉMA TACTIQUE du plan : disposition, mouvement type, action clé
   Format JSON STRICT (coordonnées x,y en % : x=0 gauche, x=100 droite, y=0 haut, y=100 bas) :
 ${exempleSchema()}
-
-Règles du schéma tactique :
-- terrain.longueur / terrain.largeur = dimensions RÉELLES en mètres, adaptées à ${p.categorie} (ex : U8 = petit terrain 20×15, Seniors = grand 40×30).
-- equipe : "A" (bleus), "B" (rouges), "J" (joker jaune), "G" (gardien).
-- fleches.type : "passe" (ballon), "deplacement" (course sans ballon), "conduite" (dribble), "tir".
-- Inclure TOUS les éléments : joueurs, plots délimitant l'espace, ballon(s), buts, zones si pertinent.
-- Une ACTION TYPIQUE cohérente : 2-5 flèches qui racontent une séquence réaliste de l'exercice.
-- Max ${p.effectif} joueurs par schéma (gardiens compris).
+${schemaInstructions(p.effectif)}
 
 CONTENU & TONALITÉ :
 - Sois CRÉATIF ET VARIÉ : change les approches entre phases (pas la même structure 4× fois).
@@ -181,6 +202,7 @@ Structure de chaque exercice (fiche FFF complète) :
 - schema: {...} — schéma tactique JSON (x,y en % 0-100, terrain en mètres réels)
 
 Format schéma : ${exempleSchema()}
+${schemaInstructions(p.effectif)}
 
 Réponds UNIQUEMENT avec ce JSON valide :
 {

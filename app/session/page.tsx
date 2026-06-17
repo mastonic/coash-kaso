@@ -5,6 +5,7 @@ import { AccessGate } from '@/components/AccessGate';
 import { ToolsNav } from '@/components/ToolsNav';
 import { GenerationLoader } from '@/components/GenerationLoader';
 import { FicheSeance } from '@/components/seance/FicheSeance';
+import { SchemaExercice } from '@/components/seance/SchemaExercice';
 import {
   CATEGORIES,
   CHARGES,
@@ -80,58 +81,65 @@ function CarteOption({
 }) {
   return (
     <div
-      className={`flex flex-col rounded-xl border p-4 transition-all duration-200 ${
+      className={`flex flex-col rounded-xl border transition-all duration-200 ${
         selected
           ? 'border-[#39FF14] bg-[rgba(57,255,20,0.08)] shadow-[0_0_20px_rgba(57,255,20,0.15)]'
           : 'border-[rgba(57,255,20,0.15)] bg-[#141E1A] hover:border-[rgba(57,255,20,0.35)]'
       }`}
     >
-      <div className="mb-3 flex items-start justify-between gap-2">
-        <div className="flex-1">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF]">
-            {phase.procede.toUpperCase()} · {phase.duree}′
-          </span>
-          <h4 className="mt-0.5 text-sm font-black text-[#F3F4F6]">{phase.titre}</h4>
-        </div>
-        {selected && (
-          <span className="mt-0.5 rounded-full bg-[#39FF14] px-2 py-0.5 text-[10px] font-black text-[#0A0F0D]">
-            CHOISIE
-          </span>
-        )}
+      {/* Schéma tactique */}
+      <div className="rounded-t-xl overflow-hidden">
+        <SchemaExercice schema={phase.schema} />
       </div>
 
-      <p className="mb-3 text-xs leading-relaxed text-[#9CA3AF] line-clamp-2">
-        {phase.objectif}
-      </p>
-
-      <p className="mb-4 text-xs text-[#9CA3AF]">
-        <span className="font-bold text-[#F3F4F6]">Effectif : </span>
-        {phase.effectif}
-      </p>
-
-      <div className="mt-auto flex gap-2">
-        <button
-          onClick={onSelect}
-          className={`flex-1 rounded-lg py-2 text-xs font-bold transition-all ${
-            selected
-              ? 'bg-[#39FF14] text-[#0A0F0D]'
-              : 'border border-[rgba(57,255,20,0.4)] text-[#39FF14] hover:bg-[rgba(57,255,20,0.1)]'
-          }`}
-        >
-          {selected ? '✓ Choisie' : 'Choisir'}
-        </button>
-        <button
-          onClick={onRegenerer}
-          disabled={regenerating}
-          title="Régénérer cette phase"
-          className="rounded-lg border border-[rgba(255,255,255,0.1)] px-3 py-2 text-xs text-[#9CA3AF] transition-all hover:border-[rgba(57,255,20,0.3)] hover:text-[#39FF14] disabled:opacity-40"
-        >
-          {regenerating ? (
-            <span className="inline-block h-3 w-3 animate-spin rounded-full border border-[#39FF14] border-t-transparent" />
-          ) : (
-            '↺'
+      <div className="p-4 flex flex-col flex-1">
+        <div className="mb-2 flex items-start justify-between gap-2">
+          <div className="flex-1">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF]">
+              {phase.procede.toUpperCase()} · {phase.duree}′
+            </span>
+            <h4 className="mt-0.5 text-sm font-black text-[#F3F4F6]">{phase.titre}</h4>
+          </div>
+          {selected && (
+            <span className="mt-0.5 rounded-full bg-[#39FF14] px-2 py-0.5 text-[10px] font-black text-[#0A0F0D]">
+              CHOISIE
+            </span>
           )}
-        </button>
+        </div>
+
+        <p className="mb-2 text-xs leading-relaxed text-[#9CA3AF] line-clamp-2">
+          {phase.objectif}
+        </p>
+
+        <p className="mb-4 text-xs text-[#9CA3AF]">
+          <span className="font-bold text-[#F3F4F6]">Effectif : </span>
+          {phase.effectif}
+        </p>
+
+        <div className="mt-auto flex gap-2">
+          <button
+            onClick={onSelect}
+            className={`flex-1 rounded-lg py-2 text-xs font-bold transition-all ${
+              selected
+                ? 'bg-[#39FF14] text-[#0A0F0D]'
+                : 'border border-[rgba(57,255,20,0.4)] text-[#39FF14] hover:bg-[rgba(57,255,20,0.1)]'
+            }`}
+          >
+            {selected ? '✓ Choisie' : 'Choisir'}
+          </button>
+          <button
+            onClick={onRegenerer}
+            disabled={regenerating}
+            title="Régénérer cette phase"
+            className="rounded-lg border border-[rgba(255,255,255,0.1)] px-3 py-2 text-xs text-[#9CA3AF] transition-all hover:border-[rgba(57,255,20,0.3)] hover:text-[#39FF14] disabled:opacity-40"
+          >
+            {regenerating ? (
+              <span className="inline-block h-3 w-3 animate-spin rounded-full border border-[#39FF14] border-t-transparent" />
+            ) : (
+              '↺'
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

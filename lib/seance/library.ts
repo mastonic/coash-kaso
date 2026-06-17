@@ -502,6 +502,115 @@ export function schemaMatch(
   };
 }
 
+/** Couloir de passes en zigzag — échauffement activation */
+export function schemaEchauffementZigzag(): SchemaExercice {
+  const plots: SchemaPlot[] = [
+    P(20, 20, 'orange'), P(40, 80, 'orange'), P(60, 20, 'orange'), P(80, 80, 'orange'),
+    ...coins(),
+  ];
+  const joueurs = [J(5, 20, 'A', '1'), J(5, 80, 'A', '2'), J(5, 50, 'A', '3')];
+  const fleches: SchemaFleche[] = [
+    F(8, 20, 20, 22, 'conduite'), F(20, 22, 40, 78, 'conduite'),
+    F(40, 78, 60, 22, 'conduite'), F(60, 22, 80, 78, 'conduite'),
+  ];
+  return { terrain: { longueur: 20, largeur: 15 }, joueurs, plots, ballons: [B(9, 18)], fleches };
+}
+
+/** Triangle de passes — échauffement technique */
+export function schemaTrianglePasses(): SchemaExercice {
+  const pts = [{ x: 50, y: 10 }, { x: 15, y: 80 }, { x: 85, y: 80 }];
+  const joueurs = [
+    J(pts[0].x, pts[0].y, 'A', '1'), J(pts[1].x, pts[1].y, 'A', '2'), J(pts[2].x, pts[2].y, 'A', '3'),
+    J(pts[0].x + 8, pts[0].y + 5, 'A'), J(pts[1].x + 8, pts[1].y - 5, 'A'),
+  ];
+  const fleches: SchemaFleche[] = [
+    F(pts[0].x, pts[0].y, pts[1].x, pts[1].y, 'passe'),
+    F(pts[1].x, pts[1].y, pts[2].x, pts[2].y, 'passe'),
+    F(pts[2].x, pts[2].y, pts[0].x, pts[0].y, 'conduite'),
+    F(pts[0].x, pts[0].y, pts[1].x + 10, pts[1].y - 10, 'deplacement'),
+  ];
+  return {
+    terrain: { longueur: 15, largeur: 15 },
+    joueurs,
+    plots: pts.map((p) => P(p.x, p.y, 'jaune')),
+    ballons: [B(pts[0].x + 3, pts[0].y + 3)],
+    fleches,
+  };
+}
+
+/** Jeu en largeur avec 3 zones verticales — corps offensif */
+export function schemaJeuLargeur(nA: number, nB: number): SchemaExercice {
+  const zones: SchemaZone[] = [
+    { x: 0, y: 0, largeur: 100, hauteur: 28, label: 'Couloir G' },
+    { x: 0, y: 28, largeur: 100, hauteur: 44, label: 'Zone centrale' },
+    { x: 0, y: 72, largeur: 100, hauteur: 28, label: 'Couloir D' },
+  ];
+  const a = grille(nA, 'A', 8, 10, 45, 90);
+  const b = grille(nB, 'B', 55, 10, 92, 90);
+  const fleches: SchemaFleche[] = [];
+  if (a.length >= 2) {
+    fleches.push(F(a[0].x, a[0].y, a[1].x, a[1].y, 'passe'));
+    fleches.push(F(a[1].x, a[1].y, a[1].x + 15, 10, 'passe'));
+    fleches.push(F(a[1].x + 15, 10, a[1].x + 20, 35, 'deplacement'));
+  }
+  return {
+    terrain: { longueur: 40, largeur: 35 },
+    joueurs: [...a, ...b],
+    plots: coins(),
+    zones,
+    ballons: a.length ? [B(a[0].x + 3, a[0].y)] : [],
+    fleches,
+  };
+}
+
+/** Attaque placée 3c2 sur demi-terrain */
+export function schemaAttaquePlacee(): SchemaExercice {
+  const buts: SchemaBut[] = [{ x: 99, y: 50, taille: 'grand', orientation: 'droite' }];
+  const joueurs = [
+    J(99, 50, 'G', 'GB'),
+    J(30, 50, 'A', 'MEN'), J(45, 25, 'A', 'AG'), J(45, 75, 'A', 'AD'),
+    J(65, 35, 'B', 'D1'), J(65, 65, 'B', 'D2'),
+  ];
+  const fleches: SchemaFleche[] = [
+    F(30, 50, 45, 28, 'passe'),
+    F(45, 28, 60, 32, 'conduite'),
+    F(60, 32, 95, 50, 'tir'),
+    F(45, 75, 58, 60, 'deplacement'),
+  ];
+  return {
+    terrain: { longueur: 35, largeur: 30 },
+    joueurs,
+    plots: [P(2, 3), P(2, 97), P(30, 3, 'orange'), P(30, 97, 'orange')],
+    buts,
+    ballons: [B(33, 48)],
+    fleches,
+  };
+}
+
+/** Match avec zone centrale neutre */
+export function schemaMatchZoneCentrale(nA: number, nB: number, grandsButs: boolean): SchemaExercice {
+  const zones: SchemaZone[] = [
+    { x: 37, y: 0, largeur: 26, hauteur: 100, label: 'Zone libre' },
+  ];
+  const withGK = grandsButs && nA >= 4 && nB >= 4;
+  const a = grille(withGK ? nA - 1 : nA, 'A', 5, 10, 35, 90);
+  const b = grille(withGK ? nB - 1 : nB, 'B', 63, 10, 95, 90);
+  const gks: SchemaJoueur[] = withGK ? [J(2, 50, 'G', 'GB'), J(98, 50, 'G', 'GB')] : [];
+  const buts: SchemaBut[] = grandsButs
+    ? [{ x: 1, y: 50, taille: 'grand', orientation: 'gauche' }, { x: 99, y: 50, taille: 'grand', orientation: 'droite' }]
+    : [{ x: 1, y: 35, taille: 'mini', orientation: 'gauche' }, { x: 1, y: 65, taille: 'mini', orientation: 'gauche' },
+       { x: 99, y: 35, taille: 'mini', orientation: 'droite' }, { x: 99, y: 65, taille: 'mini', orientation: 'droite' }];
+  return {
+    terrain: { longueur: 50, largeur: 35 },
+    joueurs: [...gks, ...a, ...b],
+    plots: coins(),
+    buts,
+    zones,
+    ballons: [B(50, 50)],
+    fleches: a.length >= 1 ? [F(a[0].x, a[0].y, 50, 48, 'passe'), F(50, 48, b[0]?.x ?? 70, b[0]?.y ?? 50, 'deplacement')] : [],
+  };
+}
+
 // ── Construction de la séance par thème ──────────────────────────────────────
 
 interface Splits {
@@ -1210,7 +1319,7 @@ function phaseEchauffementJeuPositionnel(p: SeanceParams, s: Splits, duree: numb
       'Au moins 3 changements de zone réussis par équipe.',
       "Tête levée avant la réception (lecture de l'espace).",
     ],
-    schema: scaleTerrain(schemaConservation(s.nA, s.nB, 0), k),
+    schema: scaleTerrain(schemaEchauffementZigzag(), k),
   };
 }
 
@@ -1266,7 +1375,7 @@ function phaseMatchMiniZones(p: SeanceParams, s: Splits, duree: number, consigne
       'Les comportements du thème apparaissent spontanément.',
       "Les deux équipes tentent d'atteindre la zone d'en-but.",
     ],
-    schema: scaleTerrain(schemaMatch(s.nA + Math.ceil(s.jokers / 2), s.nB + Math.floor(s.jokers / 2), false), k),
+    schema: scaleTerrain(schemaMatchZoneCentrale(s.nA + Math.ceil(s.jokers / 2), s.nB + Math.floor(s.jokers / 2), false), k),
   };
 }
 
@@ -1387,10 +1496,36 @@ export function buildDraftFallback(params: SeanceParams): SeanceDraft {
     phaseMatchPression(params, s, d4, consigneMatch),
   ];
 
+  const k = dimensionsParCategorie(params.categorie);
+
+  // Corps 1 — 3 variantes avec schémas différents
+  const corps1Var2: PhaseSeance = {
+    ...corps[0],
+    titre: `${corps[0].titre} — variante jeu en largeur`,
+    schema: scaleTerrain(schemaJeuLargeur(s.nA, s.nB), k),
+  };
+  const corps1Var3: PhaseSeance = {
+    ...corps[0],
+    titre: `${corps[0].titre} — variante attaque placée`,
+    schema: scaleTerrain(schemaAttaquePlacee(), k),
+  };
+
+  // Corps 2 — 3 variantes avec schémas différents
+  const corps2Var2: PhaseSeance = {
+    ...corps[1],
+    titre: `${corps[1].titre} — variante triangle`,
+    schema: scaleTerrain(schemaTrianglePasses(), k),
+  };
+  const corps2Var3: PhaseSeance = {
+    ...corps[1],
+    titre: `${corps[1].titre} — variante jeu de zones`,
+    schema: scaleTerrain(schemaJeuZones(s.nA, s.nB), k),
+  };
+
   const alternatives: AlternativesPhase[] = [
     { phase: `echauffement` as PhaseType, options: echauffements },
-    { phase: `corps1` as PhaseType, options: [corps[0]] },
-    { phase: `corps2` as PhaseType, options: [corps[1]] },
+    { phase: `corps1` as PhaseType, options: [corps[0], corps1Var2, corps1Var3] },
+    { phase: `corps2` as PhaseType, options: [corps[1], corps2Var2, corps2Var3] },
     { phase: `match` as PhaseType, options: matchs },
   ];
 
