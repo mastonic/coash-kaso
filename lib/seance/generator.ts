@@ -1,15 +1,16 @@
 /**
  * Génération de séance — IA (Gemini) avec repli sur la bibliothèque intégrée.
  *
- * La séance IA est validée phase par phase : tout champ manquant ou schéma
- * invalide est remplacé par l'équivalent de la bibliothèque, de sorte que la
- * réponse est TOUJOURS une séance complète et affichable.
+ * Deux modes :
+ *  - generateSeance() : génère une séance complète d'un coup (mode classique).
+ *  - generateDraft()  : génère 3 alternatives par phase, le coach choisit.
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { PhaseSeance, Seance, SeanceParams } from './schema';
+import type { AlternativesPhase, PhaseSeance, Seance, SeanceDraft, SeanceParams } from './schema';
 import { normalisePhase, themeLabel } from './schema';
-import { buildSeance } from './library';
+import { buildDraftFallback, buildSeance } from './library';
+import { ECOLES } from './schema';
 
 const MODEL = 'gemini-2.5-flash';
 
@@ -41,14 +42,28 @@ function exempleSchema(): string {
   });
 }
 
-function buildPrompt(p: SeanceParams): string {
+function ecoleContext(p: SeanceParams): string {
+  if (!p.ecole) return '';
+  const ecole = ECOLES.find((e) => e.id === p.ecole);
+  if (!ecole) return '';
+  return `\n- École / style de jeu : ${ecole.label} — ${ecole.description}
+  → Les exercices doivent refléter les principes de cette école (structures de jeu, valeurs, style d'exercices typiques).`;
+}
+
+function antiRepetitionContext(exercicesRecents?: string[]): string {
+  if (!exercicesRecents?.length) return '';
+  return `\nEXERCICES DÉJÀ UTILISÉS RÉCEMMENT (à éviter absolument, propose des variantes différentes) :\n${exercicesRecents.slice(0, 20).map((t) => `- ${t}`).join('\n')}`;
+}
+
+function buildPrompt(p: SeanceParams, exercicesRecents?: string[]): string {
   return `Tu es un éducateur de football diplômé (BMF/BEF) expert en la méthodologie FFF.
 Conçois une séance complète, RICHE EN DÉTAILS et CRÉATIVE en FRANÇAIS pour :
 - Catégorie : ${p.categorie}
-- Thème : ${themeLabel(p.theme)}
+- Thème / sous-thème : ${themeLabel(p.theme)}
 - Effectif : ${p.effectif} joueurs
 - Durée totale : ${p.duree} minutes
-- Charge du jour : ${p.charge}
+- Charge du jour : ${p.charge}${ecoleContext(p)}
+${antiRepetitionContext(exercicesRecents)}
 
 STRUCTURE OBLIGATOIRE (méthodologie FFF) — exactement 4 phases dans cet ordre :
 1. "echauffement" — mise en train avec ballon, progression progressive
@@ -118,13 +133,89 @@ Réponds UNIQUEMENT avec ce JSON valide (aucun texte autour, aucune accolade mal
 }`;
 }
 
+function buildDraftPrompt(p: SeanceParams, exercicesRecents?: string[]): string {
+  const [d1Approx, d2Approx, d3Approx, d4Approx] = [
+    Math.round(p.duree * 0.2),
+    Math.round(p.duree * 0.27),
+    Math.round(p.duree * 0.3),
+    Math.round(p.duree * 0.23),
+  ];
+
+  return `Tu es un éducateur de football diplômé (BMF/BEF) expert en la méthodologie FFF.
+Génère 3 alternatives DISTINCTES et VARIÉES pour chacune des 4 phases d'une séance en FRANÇAIS.
+
+Paramètres :
+- Catégorie : ${p.categorie}
+- Thème / sous-thème : ${themeLabel(p.theme)}
+- Effectif : ${p.effectif} joueurs
+- Durée totale : ${p.duree} minutes
+- Charge du jour : ${p.charge}${ecoleContext(p)}
+${antiRepetitionContext(exercicesRecents)}
+
+DURÉES INDICATIVES PAR PHASE :
+- Échauffement : ~${d1Approx} min
+- Corps 1 : ~${d2Approx} min
+- Corps 2 : ~${d3Approx} min
+- Match final : ~${d4Approx} min
+
+RÈGLE DES 3 ALTERNATIVES : chaque phase doit proposer 3 exercices VRAIMENT DIFFÉRENTS :
+- Alternative A : exercice classique, bien maîtrisé
+- Alternative B : approche moins courante, plus créative (influence école de jeu si indiquée)
+- Alternative C : exercice intensif ou avec contrainte spéciale
+
+Pour chaque phase, les 3 options doivent avoir des titres, structures et objectifs distincts.
+JAMAIS la même structure avec juste un nom différent.
+
+Structure de chaque exercice (fiche FFF complète) :
+- procede: "echauffement" (phase 1) | "jeu"|"exercice" (phase 2) | "situation"|"exercice" (phase 3) | "match" (phase 4)
+- titre: string — nom accrocheur et distinct
+- duree: number (minutes)
+- objectif: string — intention pédagogique du coach
+- but: string — cible concrète pour les joueurs
+- effectif: string — organisation détaillée
+- materiel: string — liste complète
+- consignes: string[] — 4 à 6 règles progressives
+- variantes: string[] — 3 variantes (simple → intermédiaire → avancée)
+- criteresReussite: string[] — 3-4 critères chiffrés
+- conseilCoach: string
+- schema: {...} — schéma tactique JSON (x,y en % 0-100, terrain en mètres réels)
+
+Format schéma : ${exempleSchema()}
+
+Réponds UNIQUEMENT avec ce JSON valide :
+{
+  "titre": string,
+  "objectif": string,
+  "materiel": string,
+  "retourAuCalme": string,
+  "conseilsCoach": string[],
+  "alternatives": [
+    {
+      "phase": "echauffement",
+      "options": [exercice_A, exercice_B, exercice_C]
+    },
+    {
+      "phase": "corps1",
+      "options": [exercice_A, exercice_B, exercice_C]
+    },
+    {
+      "phase": "corps2",
+      "options": [exercice_A, exercice_B, exercice_C]
+    },
+    {
+      "phase": "match",
+      "options": [exercice_A, exercice_B, exercice_C]
+    }
+  ]
+}`;
+}
+
 function cleanJson(text: string): string {
   let s = text.trim();
   if (s.includes('```')) {
     const m = s.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (m) s = m[1].trim();
   }
-  // Coupe tout ce qui précède la première accolade / suit la dernière
   const start = s.indexOf('{');
   const end = s.lastIndexOf('}');
   if (start >= 0 && end > start) s = s.slice(start, end + 1);
@@ -137,11 +228,11 @@ export interface GenerationResult {
   source: 'ia' | 'bibliotheque';
 }
 
-/**
- * Fusionne la réponse IA avec la séance bibliothèque : chaque phase IA est
- * normalisée, et la phase bibliothèque correspondante sert de filet de
- * sécurité champ par champ.
- */
+export interface DraftGenerationResult {
+  draft: SeanceDraft;
+  source: 'ia' | 'bibliotheque';
+}
+
 function mergeWithFallback(raw: unknown, fallback: Seance): Seance {
   if (!raw || typeof raw !== 'object') return fallback;
   const d = raw as Record<string, unknown>;
@@ -168,8 +259,49 @@ function mergeWithFallback(raw: unknown, fallback: Seance): Seance {
   };
 }
 
+function normaliseDraft(raw: unknown, fallback: SeanceDraft): SeanceDraft {
+  if (!raw || typeof raw !== 'object') return fallback;
+  const d = raw as Record<string, unknown>;
+  const strOr = (v: unknown, fb: string) =>
+    typeof v === 'string' && v.trim() ? v.trim() : fb;
+
+  const PHASE_TYPES = ['echauffement', 'corps1', 'corps2', 'match'] as const;
+  const altRaw = Array.isArray(d.alternatives) ? d.alternatives : [];
+
+  const alternatives: AlternativesPhase[] = PHASE_TYPES.map((phaseType, i) => {
+    const rawAlt = altRaw[i] as Record<string, unknown> | undefined;
+    const fbAlt = fallback.alternatives[i];
+    const optionsRaw = Array.isArray(rawAlt?.options) ? rawAlt.options : [];
+    const options: PhaseSeance[] = optionsRaw
+      .slice(0, 3)
+      .map((o: unknown, j: number) =>
+        normalisePhase(o, fbAlt?.options[j] ?? fbAlt?.options[0])
+      )
+      .filter(Boolean);
+
+    return {
+      phase: phaseType,
+      options: options.length > 0 ? options : fbAlt?.options ?? [],
+    };
+  });
+
+  return {
+    ...fallback,
+    titre: strOr(d.titre, fallback.titre),
+    objectif: strOr(d.objectif, fallback.objectif),
+    materiel: strOr(d.materiel, fallback.materiel),
+    retourAuCalme: strOr(d.retourAuCalme, fallback.retourAuCalme),
+    conseilsCoach:
+      Array.isArray(d.conseilsCoach) && d.conseilsCoach.length
+        ? (d.conseilsCoach as string[]).filter((c) => typeof c === 'string')
+        : fallback.conseilsCoach,
+    alternatives,
+  };
+}
+
 export async function generateSeance(
-  params: SeanceParams
+  params: SeanceParams,
+  exercicesRecents?: string[]
 ): Promise<GenerationResult> {
   const fallback = buildSeance(params);
 
@@ -189,11 +321,43 @@ export async function generateSeance(
       },
     });
 
-    const result = await model.generateContent(buildPrompt(params));
+    const result = await model.generateContent(buildPrompt(params, exercicesRecents));
     const parsed = JSON.parse(cleanJson(result.response.text()));
     return { seance: mergeWithFallback(parsed, fallback), source: 'ia' };
   } catch (error) {
     console.error('Génération IA échouée, repli bibliothèque :', error);
     return { seance: fallback, source: 'bibliotheque' };
+  }
+}
+
+export async function generateDraft(
+  params: SeanceParams,
+  exercicesRecents?: string[]
+): Promise<DraftGenerationResult> {
+  const fallback = buildDraftFallback(params);
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return { draft: fallback, source: 'bibliotheque' };
+  }
+
+  try {
+    const client = new GoogleGenerativeAI(apiKey);
+    const model = client.getGenerativeModel({
+      model: MODEL,
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.9,
+        maxOutputTokens: 32768,
+      },
+    });
+
+    const result = await model.generateContent(buildDraftPrompt(params, exercicesRecents));
+    const parsed = JSON.parse(cleanJson(result.response.text()));
+    const draft = normaliseDraft(parsed, fallback);
+    return { draft: { ...draft, params, source: 'ia' }, source: 'ia' };
+  } catch (error) {
+    console.error('Génération draft IA échouée, repli bibliothèque :', error);
+    return { draft: fallback, source: 'bibliotheque' };
   }
 }

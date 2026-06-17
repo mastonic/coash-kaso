@@ -96,7 +96,7 @@ export interface PhaseSeance {
   schema: SchemaExercice;
 }
 
-// ── Séance complète ──────────────────────────────────────────────────────────
+// ── Catégories, charges ───────────────────────────────────────────────────────
 
 export const CATEGORIES = [
   'U6-U7',
@@ -112,6 +112,76 @@ export type Categorie = (typeof CATEGORIES)[number];
 export const CHARGES = ['Récupération', 'Modérée', 'Élevée'] as const;
 export type Charge = (typeof CHARGES)[number];
 
+// ── École / style de jeu ─────────────────────────────────────────────────────
+
+export type EcoleDeJeu =
+  | 'bresilienne'
+  | 'neerlandaise'
+  | 'espagnole'
+  | 'francaise'
+  | 'allemande'
+  | 'italienne'
+  | 'anglaise'
+  | 'argentine';
+
+export const ECOLES: { id: EcoleDeJeu; label: string; description: string }[] = [
+  {
+    id: 'bresilienne',
+    label: 'École brésilienne',
+    description: 'Créativité, technique individuelle, jeu en espaces réduits, improvisation',
+  },
+  {
+    id: 'neerlandaise',
+    label: 'École néerlandaise',
+    description: 'Occupation de l\'espace, polyvalence des postes, pressing haut (Total Football)',
+  },
+  {
+    id: 'espagnole',
+    label: 'École espagnole',
+    description: 'Possession, jeu court, construction patiente (tiki-taka / La Masia)',
+  },
+  {
+    id: 'francaise',
+    label: 'École française',
+    description: 'Équilibre technique-tactique-collectif (héritage INF Clairefontaine)',
+  },
+  {
+    id: 'allemande',
+    label: 'École allemande',
+    description: 'Intensité physique, pressing collectif, transitions rapides (gegenpressing)',
+  },
+  {
+    id: 'italienne',
+    label: 'École italienne',
+    description: 'Organisation défensive, sens tactique, gestion des espaces (catenaccio)',
+  },
+  {
+    id: 'anglaise',
+    label: 'École anglaise',
+    description: 'Physique, duels, jeu direct, intensité de course',
+  },
+  {
+    id: 'argentine',
+    label: 'École argentine',
+    description: 'Technique de rue, créativité individuelle, dribble, sens du but',
+  },
+];
+
+// ── Taxonomie FFF : domaines → sous-thèmes ───────────────────────────────────
+
+export type DomaineId =
+  | 'technique_individuelle'
+  | 'technico_offensif'
+  | 'technico_defensif'
+  | 'tactique_collective'
+  | 'physique'
+  | 'mental_cognitif'
+  | 'gardien';
+
+/**
+ * Anciens thèmes (rétrocompatibilité — coach-ia.ts, historique).
+ * Ces IDs restent valides comme SousThemeId.
+ */
 export const THEMES = [
   { id: 'possession', label: 'Conservation / Possession' },
   { id: 'pressing', label: 'Pressing / Récupération' },
@@ -126,15 +196,177 @@ export const THEMES = [
 ] as const;
 export type ThemeId = (typeof THEMES)[number]['id'];
 
+/** Tous les sous-thèmes disponibles (nouvelle taxonomie + anciens IDs rétrocompatibles). */
+export type SousThemeId =
+  // ── Technique individuelle ──
+  | 'passe'
+  | 'controle'
+  | 'conduite_balle'
+  | 'frappe'
+  | 'dribble'
+  | 'jeu_de_tete'
+  | 'centre'
+  // ── Technico-tactique offensif ──
+  | 'demarquage'
+  | 'soutien'
+  | 'permutation'
+  | 'jeu_sans_ballon'
+  | 'un_contre_un_offensif'
+  | 'finition_tt'
+  | 'transition_offensive'
+  | 'jeu_dos_au_but'
+  // ── Technico-tactique défensif ──
+  | 'un_contre_un_defensif'
+  | 'marquage'
+  | 'pressing_tt'
+  | 'couverture'
+  | 'replacement'
+  | 'transition_defensive'
+  | 'jeu_interieur_exterieur'
+  // ── Tactique collective ──
+  | 'animation_offensive'
+  | 'animation_defensive'
+  | 'corner'
+  | 'coup_franc'
+  | 'touche'
+  | 'penalty'
+  // ── Physique ──
+  | 'vitesse_reaction'
+  | 'endurance'
+  | 'coordination_agilite'
+  | 'force'
+  | 'ppg'
+  // ── Mental / cognitif ──
+  | 'prise_de_decision'
+  | 'communication'
+  | 'concentration'
+  | 'gestion_effort'
+  // ── Gardien de but ──
+  | 'relance_gk'
+  | 'blocage_gk'
+  | 'plongeon_gk'
+  | 'sorties_gk'
+  // ── Anciens thèmes (rétrocompatibilité) ──
+  | ThemeId;
+
+export const DOMAINES: {
+  id: DomaineId;
+  label: string;
+  sousThemes: { id: SousThemeId; label: string }[];
+}[] = [
+  {
+    id: 'technique_individuelle',
+    label: 'Technique individuelle',
+    sousThemes: [
+      { id: 'passe', label: 'Passe' },
+      { id: 'controle', label: 'Contrôle' },
+      { id: 'conduite_balle', label: 'Conduite de balle' },
+      { id: 'frappe', label: 'Frappe / Tir' },
+      { id: 'dribble', label: 'Dribble / Feinte' },
+      { id: 'jeu_de_tete', label: 'Jeu de tête' },
+      { id: 'centre', label: 'Centre / Jeu sur les ailes' },
+    ],
+  },
+  {
+    id: 'technico_offensif',
+    label: 'Technico-tactique offensif',
+    sousThemes: [
+      { id: 'demarquage', label: 'Démarquage' },
+      { id: 'soutien', label: 'Soutien / Appui' },
+      { id: 'permutation', label: 'Permutation de postes' },
+      { id: 'jeu_sans_ballon', label: 'Jeu sans ballon' },
+      { id: 'un_contre_un_offensif', label: '1 contre 1 offensif' },
+      { id: 'finition_tt', label: 'Finition / Tir au but' },
+      { id: 'transition_offensive', label: 'Transition offensive' },
+      { id: 'jeu_dos_au_but', label: 'Jeu dos au but' },
+    ],
+  },
+  {
+    id: 'technico_defensif',
+    label: 'Technico-tactique défensif',
+    sousThemes: [
+      { id: 'un_contre_un_defensif', label: '1 contre 1 défensif' },
+      { id: 'marquage', label: 'Marquage' },
+      { id: 'pressing_tt', label: 'Pressing / Récupération haute' },
+      { id: 'couverture', label: 'Couverture défensive' },
+      { id: 'replacement', label: 'Replacement' },
+      { id: 'transition_defensive', label: 'Transition défensive' },
+      { id: 'jeu_interieur_exterieur', label: 'Jeu intérieur / extérieur' },
+    ],
+  },
+  {
+    id: 'tactique_collective',
+    label: 'Tactique collective',
+    sousThemes: [
+      { id: 'animation_offensive', label: 'Animation offensive / Possession' },
+      { id: 'animation_defensive', label: 'Animation défensive' },
+      { id: 'corner', label: 'Corner' },
+      { id: 'coup_franc', label: 'Coup franc' },
+      { id: 'touche', label: 'Remise en jeu / Touche' },
+      { id: 'penalty', label: 'Penalty' },
+    ],
+  },
+  {
+    id: 'physique',
+    label: 'Physique',
+    sousThemes: [
+      { id: 'vitesse_reaction', label: 'Vitesse / Réaction' },
+      { id: 'endurance', label: 'Endurance / Résistance' },
+      { id: 'coordination_agilite', label: 'Coordination / Agilité' },
+      { id: 'force', label: 'Force / Puissance' },
+      { id: 'ppg', label: 'Préparation physique générale' },
+    ],
+  },
+  {
+    id: 'mental_cognitif',
+    label: 'Mental / Cognitif',
+    sousThemes: [
+      { id: 'prise_de_decision', label: 'Prise de décision' },
+      { id: 'communication', label: 'Communication' },
+      { id: 'concentration', label: 'Concentration' },
+      { id: 'gestion_effort', label: 'Gestion de l\'effort' },
+    ],
+  },
+  {
+    id: 'gardien',
+    label: 'Gardien de but',
+    sousThemes: [
+      { id: 'relance_gk', label: 'Relance du gardien' },
+      { id: 'blocage_gk', label: 'Blocage / Arrêt' },
+      { id: 'plongeon_gk', label: 'Plongeon' },
+      { id: 'sorties_gk', label: 'Sorties / Jeu aérien' },
+    ],
+  },
+];
+
+/** Retrouve le label d'un sous-thème ou d'un ancien thème à partir de son ID. */
 export function themeLabel(id: string): string {
-  return THEMES.find((t) => t.id === id)?.label ?? id;
+  const legacy = THEMES.find((t) => t.id === id);
+  if (legacy) return legacy.label;
+  for (const d of DOMAINES) {
+    const st = d.sousThemes.find((s) => s.id === id);
+    if (st) return st.label;
+  }
+  return id;
 }
+
+/** Retrouve le domaine parent d'un sous-thème. */
+export function domaineDeTheme(id: string): DomaineId | null {
+  for (const d of DOMAINES) {
+    if (d.sousThemes.some((s) => s.id === id)) return d.id;
+  }
+  return null;
+}
+
+// ── Séance complète ──────────────────────────────────────────────────────────
 
 export interface Seance {
   version: 2;
   titre: string;
   categorie: Categorie;
-  theme: ThemeId;
+  /** Sous-thème ou ancien thème (rétrocompat) */
+  theme: SousThemeId;
+  ecole?: EcoleDeJeu;
   objectif: string;
   /** Durée totale en minutes (phases + retour au calme) */
   dureeTotale: number;
@@ -148,11 +380,32 @@ export interface Seance {
 }
 
 export interface SeanceParams {
-  theme: ThemeId;
+  theme: SousThemeId;
   categorie: Categorie;
   effectif: number;
   duree: number;
   charge: Charge;
+  ecole?: EcoleDeJeu;
+}
+
+// ── Draft (choix par phase) ───────────────────────────────────────────────────
+
+export type PhaseType = 'echauffement' | 'corps1' | 'corps2' | 'match';
+
+export interface AlternativesPhase {
+  phase: PhaseType;
+  options: PhaseSeance[];
+}
+
+export interface SeanceDraft {
+  params: SeanceParams;
+  titre: string;
+  objectif: string;
+  materiel: string;
+  retourAuCalme: string;
+  conseilsCoach: string[];
+  alternatives: AlternativesPhase[];
+  source: 'ia' | 'bibliotheque';
 }
 
 // ── Validation / normalisation ───────────────────────────────────────────────

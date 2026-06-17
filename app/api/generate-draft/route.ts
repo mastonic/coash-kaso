@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { getLimit } from '@/lib/plans';
-import { generateSeance } from '@/lib/seance/generator';
+import { generateDraft } from '@/lib/seance/generator';
 import {
   CATEGORIES,
   CHARGES,
@@ -17,25 +17,16 @@ import {
 
 export const maxDuration = 120;
 
-/** Mappe l'ancien format (theme/load/school/playerCount) vers les paramètres v2 */
-function parseParams(body: Record<string, unknown>): SeanceParams | null {
+function parseDraftParams(body: Record<string, unknown>): SeanceParams | null {
+  // Collect all valid sous-theme IDs
   const allSousThemeIds = new Set<string>([
     ...THEMES.map((t) => t.id),
     ...DOMAINES.flatMap((d) => d.sousThemes.map((s) => s.id)),
   ]);
 
-  const legacyThemeMap: Record<string, SousThemeId> = {
-    centre: 'ailes',
-    controle: 'technique',
-    phases: 'finition',
-    '1v1': 'duels',
-  };
-
   const themeRaw = String(body.theme ?? '');
-  const theme = allSousThemeIds.has(themeRaw)
-    ? (themeRaw as SousThemeId)
-    : legacyThemeMap[themeRaw];
-  if (!theme) return null;
+  if (!allSousThemeIds.has(themeRaw)) return null;
+  const theme = themeRaw as SousThemeId;
 
   const categorie = CATEGORIES.includes(body.categorie as Categorie)
     ? (body.categorie as Categorie)
@@ -64,7 +55,7 @@ function parseParams(body: Record<string, unknown>): SeanceParams | null {
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as Record<string, unknown>;
-    const params = parseParams(body);
+    const params = parseDraftParams(body);
 
     if (!params) {
       return NextResponse.json(
@@ -74,8 +65,10 @@ export async function POST(request: NextRequest) {
     }
 
     const email = typeof body.email === 'string' ? body.email.toLowerCase() : null;
+    const exercicesRecents = Array.isArray(body.exercicesRecents)
+      ? (body.exercicesRecents as string[]).filter((s) => typeof s === 'string')
+      : undefined;
 
-    // Quota mensuel (si l'utilisateur est identifié et Firestore configuré)
     if (email && adminDb) {
       try {
         const userDoc = await adminDb.collection('users_access').doc(email).get();
@@ -100,11 +93,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const exercicesRecents = Array.isArray(body.exercicesRecents)
-      ? (body.exercicesRecents as string[]).filter((s) => typeof s === 'string')
-      : undefined;
-
-    const { seance, source } = await generateSeance(params, exercicesRecents);
+    const { draft, source } = await generateDraft(params, exercicesRecents);
 
     if (email && adminDb) {
       try {
@@ -119,9 +108,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, data: seance, source });
+    return NextResponse.json({ success: true, data: draft, source });
   } catch (error) {
-    console.error('Erreur génération de séance :', error);
+    console.error('Erreur génération draft :', error);
     return NextResponse.json(
       { success: false, error: 'La génération a échoué, réessayez.' },
       { status: 500 }

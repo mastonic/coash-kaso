@@ -9,9 +9,12 @@
  */
 
 import type {
+  AlternativesPhase,
   Categorie,
   Charge,
+  EcoleDeJeu,
   PhaseSeance,
+  PhaseType,
   SchemaBallon,
   SchemaBut,
   SchemaExercice,
@@ -20,10 +23,75 @@ import type {
   SchemaPlot,
   SchemaZone,
   Seance,
+  SeanceDraft,
   SeanceParams,
-  ThemeId,
+  SousThemeId,
 } from './schema';
 import { themeLabel } from './schema';
+
+/**
+ * Mappe un sous-thème nouveau ou inconnu vers le thème "bibliothèque" le plus
+ * proche, afin que le fallback hors-ligne puisse toujours construire une séance.
+ */
+const SOUS_THEME_TO_THEME: Partial<Record<string, SousThemeId>> = {
+  // Technique individuelle
+  passe: 'technique',
+  controle: 'technique',
+  conduite_balle: 'conduite',
+  frappe: 'finition',
+  dribble: 'conduite',
+  jeu_de_tete: 'technique',
+  centre: 'ailes',
+  // Technico-tactique offensif
+  demarquage: 'transitions',
+  soutien: 'possession',
+  permutation: 'possession',
+  jeu_sans_ballon: 'possession',
+  un_contre_un_offensif: 'duels',
+  finition_tt: 'finition',
+  transition_offensive: 'transitions',
+  jeu_dos_au_but: 'possession',
+  // Technico-tactique défensif
+  un_contre_un_defensif: 'duels',
+  marquage: 'defense',
+  pressing_tt: 'pressing',
+  couverture: 'defense',
+  replacement: 'defense',
+  transition_defensive: 'transitions',
+  jeu_interieur_exterieur: 'defense',
+  // Tactique collective
+  animation_offensive: 'possession',
+  animation_defensive: 'defense',
+  corner: 'ailes',
+  coup_franc: 'finition',
+  touche: 'ailes',
+  penalty: 'finition',
+  // Physique
+  vitesse_reaction: 'vitesse',
+  endurance: 'vitesse',
+  coordination_agilite: 'conduite',
+  force: 'duels',
+  ppg: 'vitesse',
+  // Mental / cognitif
+  prise_de_decision: 'transitions',
+  communication: 'possession',
+  concentration: 'defense',
+  gestion_effort: 'vitesse',
+  // Gardien de but
+  relance_gk: 'defense',
+  blocage_gk: 'defense',
+  plongeon_gk: 'finition',
+  sorties_gk: 'defense',
+};
+
+function themeEffectif(theme: string): SousThemeId {
+  const direct: SousThemeId[] = [
+    'possession', 'pressing', 'transitions', 'finition', 'ailes',
+    'technique', 'conduite', 'duels', 'vitesse', 'defense',
+  ];
+  if (direct.includes(theme as SousThemeId)) return theme as SousThemeId;
+  return (SOUS_THEME_TO_THEME[theme] ?? 'possession') as SousThemeId;
+}
 
 // ── Petits utilitaires géométriques ─────────────────────────────────────────
 
@@ -569,7 +637,7 @@ function corpsParTheme(p: SeanceParams, s: Splits, d2: number, d3: number): {
 } {
   const k = dimensionsParCategorie(p.categorie);
 
-  switch (p.theme) {
+  switch (themeEffectif(p.theme)) {
     case 'possession':
       return {
         objectifSeance:
@@ -1116,13 +1184,128 @@ function corpsParTheme(p: SeanceParams, s: Splits, d2: number, d3: number): {
   }
 }
 
+// ── Alternatives supplémentaires pour le draft ────────────────────────────────
+
+function phaseEchauffementJeuPositionnel(p: SeanceParams, s: Splits, duree: number): PhaseSeance {
+  const k = dimensionsParCategorie(p.categorie);
+  return {
+    procede: 'echauffement',
+    titre: 'Mise en train — Jeu de positionnement',
+    duree,
+    objectif: "Activer la prise d'information et les déplacements avec ballon.",
+    but: "Rejoindre la zone libre avant l'adversaire, conserver le ballon.",
+    effectif: `${s.nA} contre ${s.nB}, 4 zones de couleur aux coins`,
+    materiel: '8 coupelles colorées, 2 ballons, chasubles',
+    consignes: [
+      "Jeu en 2 équipes : l'équipe en possession cherche une zone libre et y amène le ballon.",
+      "Défenseur qui touche le ballon ou pénètre la zone libre = changement de statut.",
+      'Communication : appeler la zone cible avant de jouer.',
+      'Progresser vers 1 touche maximum.',
+    ],
+    variantes: [
+      'Plus facile : 3 touches autorisées, zones plus grandes.',
+      '1 touche, zones réduites, 2 défenseurs actifs.',
+    ],
+    criteresReussite: [
+      'Au moins 3 changements de zone réussis par équipe.',
+      "Tête levée avant la réception (lecture de l'espace).",
+    ],
+    schema: scaleTerrain(schemaConservation(s.nA, s.nB, 0), k),
+  };
+}
+
+function phaseEchauffementCarreDemarquage(p: SeanceParams, _s: Splits, duree: number): PhaseSeance {
+  const k = dimensionsParCategorie(p.categorie);
+  return {
+    procede: 'echauffement',
+    titre: 'Mise en train — Carré de passes et démarquage',
+    duree,
+    objectif: "Automatiser le démarquage après la passe et la prise d'info.",
+    but: 'Enchaîner les séquences passe-démarquage sans rupture.',
+    effectif: 'Groupes de 5 à 7 par carré',
+    materiel: '4 plots orange par carré, 1 ballon par groupe',
+    consignes: [
+      'Passe vers le joueur suivant dans le sens horaire, puis démarquage dans la diagonale.',
+      'Suivre immédiatement sa passe pour occuper une nouvelle position.',
+      'Appel de balle en diagonale, jamais dans le dos du passeur.',
+      'Augmenter la vitesse progressivement.',
+    ],
+    variantes: [
+      'Plus facile : déplacement libre après la passe.',
+      'Plus difficile : 2 ballons simultanés dans le circuit.',
+    ],
+    criteresReussite: [
+      '2 minutes de circuit sans interruption.',
+      'Démarquage systématique après chaque passe.',
+    ],
+    schema: scaleTerrain(schemaCarrePasses(), k),
+  };
+}
+
+function phaseMatchMiniZones(p: SeanceParams, s: Splits, duree: number, consigneTheme: string): PhaseSeance {
+  const k = dimensionsParCategorie(p.categorie);
+  return {
+    procede: 'match',
+    titre: 'Jeu final — Match avec zones de marque',
+    duree,
+    objectif: 'Réinvestir le thème du jour dans un contexte de match à points.',
+    but: "Marquer en zone d'en-but adverse (2 pts) ou en mini-but (1 pt).",
+    effectif: `${s.nA} contre ${s.nB}${s.jokers ? ` + ${s.jokers} joker(s)` : ''}`,
+    materiel: "4 mini-buts + 2 zones d'en-but, chasubles, ballons en réserve",
+    consignes: [
+      'Jeu libre, règles du football.',
+      consigneTheme,
+      "Zone d'en-but (5 m) : tout joueur qui y pénètre avec le ballon = 2 points.",
+      'Mini-buts aux 4 coins pour tirs rapides = 1 point.',
+    ],
+    variantes: [
+      "Bonus x2 si l'action vient d'un côté non dominant.",
+      "Dernières 5 min : zone d'en-but supprimée, jeu libre.",
+    ],
+    criteresReussite: [
+      'Les comportements du thème apparaissent spontanément.',
+      "Les deux équipes tentent d'atteindre la zone d'en-but.",
+    ],
+    schema: scaleTerrain(schemaMatch(s.nA + Math.ceil(s.jokers / 2), s.nB + Math.floor(s.jokers / 2), false), k),
+  };
+}
+
+function phaseMatchPression(p: SeanceParams, s: Splits, duree: number, consigneTheme: string): PhaseSeance {
+  const k = dimensionsParCategorie(p.categorie);
+  const grandsButs = p.effectif >= 10 && p.categorie !== 'U6-U7' && p.categorie !== 'U8-U9';
+  return {
+    procede: 'match',
+    titre: 'Jeu final — Match à pression temporelle',
+    duree,
+    objectif: 'Reproduire le thème sous pression de score et de temps.',
+    but: 'Mener au score à la mi-temps garantit 1 ballon supplémentaire en 2e mi-temps.',
+    effectif: `${s.nA} contre ${s.nB}${s.jokers ? ` + ${s.jokers} joker(s)` : ''}`,
+    materiel: `Buts (${grandsButs ? '2 grands' : '4 mini-buts'}), chronomètre, chasubles, ballons`,
+    consignes: [
+      'Deux mi-temps de durée égale.',
+      consigneTheme,
+      "L'équipe qui mène à la mi-temps joue la 2e mi-temps avec 1 ballon en réserve (relance rapide).",
+      'Signal du coach = arrêt immédiat, feedback de 30 secondes puis reprise.',
+    ],
+    variantes: [
+      'But valable seulement si 4 joueurs dans la moitié adverse.',
+      "Toute récupération haute doit être jouée vers l'avant en 5 secondes.",
+    ],
+    criteresReussite: [
+      'Les intentions du thème sont maintenues en fin de match (fatigue).',
+      'Aucune équipe ne subit une série de 3 buts sans réagir tactiquement.',
+    ],
+    schema: scaleTerrain(schemaMatch(s.nA + Math.ceil(s.jokers / 2), s.nB + Math.floor(s.jokers / 2), grandsButs), k),
+  };
+}
+
 const MATERIEL_GLOBAL =
   'Ballons (1 pour 2 minimum), coupelles, plots, chasubles 3 couleurs, mini-buts, chronomètre';
 
 const RETOUR_AU_CALME =
   'Retour au calme (5 min) : trottinement léger, étirements activo-dynamiques, hydratation. ' +
   'Bilan collectif : 2 questions ouvertes aux joueurs sur le thème du jour ' +
-  '(« Qu’est-ce qui a bien fonctionné ? Que fera-t-on différemment en match ? »).';
+  "(« Qu’est-ce qui a bien fonctionné ? Que fera-t-on différemment en match ? »).";
 
 function ajusterCharge(phases: PhaseSeance[], charge: Charge): PhaseSeance[] {
   if (charge === 'Récupération') {
@@ -1166,6 +1349,7 @@ export function buildSeance(params: SeanceParams): Seance {
     titre: `Séance ${themeLabel(params.theme)} — ${params.categorie}`,
     categorie: params.categorie,
     theme: params.theme,
+    ecole: params.ecole,
     objectif: objectifSeance,
     dureeTotale: params.duree,
     effectif: params.effectif,
@@ -1174,11 +1358,56 @@ export function buildSeance(params: SeanceParams): Seance {
     phases,
     retourAuCalme: RETOUR_AU_CALME,
     conseilsCoach: [
-      'Préparer le matériel et tracer les espaces avant l’arrivée des joueurs.',
-      'Donner les consignes en moins de 60 secondes, démontrer plutôt qu’expliquer.',
-      'Adapter les espaces : trop facile → réduire ; trop difficile → agrandir.',
-      'Garder un temps de jeu effectif élevé : limiter les files d’attente.',
+      `Préparer le matériel et tracer les espaces avant l'arrivée des joueurs.`,
+      `Donner les consignes en moins de 60 secondes, démontrer plutôt qu'expliquer.`,
+      `Adapter les espaces : trop facile → réduire ; trop difficile → agrandir.`,
+      `Garder un temps de jeu effectif élevé : limiter les files d'attente.`,
     ],
+  };
+}
+
+/**
+ * Construit un draft hors-ligne avec jusqu’à 3 alternatives par phase.
+ * Utilisé comme repli quand l’IA est indisponible pour la génération de draft.
+ */
+export function buildDraftFallback(params: SeanceParams): SeanceDraft {
+  const s = splits(params.effectif);
+  const [d1, d2, d3, d4] = durees(params.duree);
+  const { corps, objectifSeance, consigneMatch } = corpsParTheme(params, s, d2, d3);
+
+  const echauffements: PhaseSeance[] = [
+    phaseEchauffement(params, s, d1),
+    phaseEchauffementJeuPositionnel(params, s, d1),
+    phaseEchauffementCarreDemarquage(params, s, d1),
+  ];
+
+  const matchs: PhaseSeance[] = [
+    phaseMatch(params, s, d4, consigneMatch),
+    phaseMatchMiniZones(params, s, d4, consigneMatch),
+    phaseMatchPression(params, s, d4, consigneMatch),
+  ];
+
+  const alternatives: AlternativesPhase[] = [
+    { phase: `echauffement` as PhaseType, options: echauffements },
+    { phase: `corps1` as PhaseType, options: [corps[0]] },
+    { phase: `corps2` as PhaseType, options: [corps[1]] },
+    { phase: `match` as PhaseType, options: matchs },
+  ];
+
+  return {
+    params,
+    titre: `Séance ${themeLabel(params.theme)} — ${params.categorie}`,
+    objectif: objectifSeance,
+    materiel: MATERIEL_GLOBAL,
+    retourAuCalme: RETOUR_AU_CALME,
+    conseilsCoach: [
+      `Préparer le matériel et tracer les espaces avant l'arrivée des joueurs.`,
+      `Donner les consignes en moins de 60 secondes, démontrer plutôt qu'expliquer.`,
+      `Adapter les espaces : trop facile → réduire ; trop difficile → agrandir.`,
+      `Garder un temps de jeu effectif élevé : limiter les files d'attente.`,
+    ],
+    alternatives,
+    source: `bibliotheque`,
   };
 }
 
