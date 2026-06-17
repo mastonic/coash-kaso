@@ -9,7 +9,7 @@
  */
 
 import type { PhaseSeance, Seance } from '@/lib/seance/schema';
-import { PROCEDE_LABELS, themeLabel } from '@/lib/seance/schema';
+import { ECOLES, PROCEDE_LABELS, themeLabel } from '@/lib/seance/schema';
 import { SchemaExercice } from './SchemaExercice';
 
 const COULEURS_PROCEDE: Record<PhaseSeance['procede'], string> = {
@@ -58,6 +58,12 @@ export function FicheSeance({ seance, date, clubName = 'ProSéance', print = fal
           <div className="flex flex-wrap gap-2">
             <Badge print={print} label={seance.categorie} />
             <Badge print={print} label={themeLabel(seance.theme)} />
+            {seance.ecole && (
+              <Badge
+                print={print}
+                label={ECOLES.find((e) => e.id === seance.ecole)?.label ?? seance.ecole}
+              />
+            )}
             <Badge print={print} label={`Charge : ${seance.charge}`} />
           </div>
         </div>
