@@ -169,20 +169,124 @@ function grille(
   return out;
 }
 
+// ── Positionnement organique (remplace grille/cercle) ────────────────────────
+// Patterns pré-définis par rôle tactique, pensés pour ressembler à une vraie
+// fiche d'entraînement. rx/ry = positions relatives % dans la bounding box.
+
+const PAT_POSSESSION: Record<number, [number, number][]> = {
+  2: [[18, 26], [82, 74]],
+  3: [[12, 16], [84, 44], [36, 88]],
+  4: [[10, 14], [84, 18], [78, 86], [16, 82]],
+  5: [[8,  12], [86, 10], [46, 48], [12, 82], [82, 82]],
+  6: [[8,  10], [82,  8], [46, 30], [54, 72], [10, 84], [84, 84]],
+  7: [[8,   8], [80,  6], [44, 26], [52, 68], [14, 46], [10, 84], [84, 84]],
+  8: [[6,   6], [78,  4], [40, 22], [52, 62], [12, 42], [82, 38], [8,  84], [84, 84]],
+};
+
+const PAT_PRESSING: Record<number, [number, number][]> = {
+  2: [[30, 28], [34, 72]],
+  3: [[22, 20], [28, 64], [40, 42]],
+  4: [[18, 16], [22, 60], [38, 30], [34, 74]],
+  5: [[16, 12], [20, 56], [34, 28], [30, 72], [44, 48]],
+  6: [[14, 10], [18, 54], [32, 22], [28, 70], [42, 40], [46, 82]],
+  7: [[12,  8], [16, 52], [30, 20], [26, 66], [40, 36], [44, 82], [48, 58]],
+};
+
+const PAT_ATTAQUE: Record<number, [number, number][]> = {
+  1: [[45, 50]],
+  2: [[30, 22], [28, 78]],
+  3: [[38, 50], [22, 14], [24, 86]],
+  4: [[38, 50], [22, 16], [24, 84], [56, 38]],
+  5: [[38, 50], [20, 14], [22, 86], [54, 26], [54, 74]],
+  6: [[38, 50], [20, 12], [22, 88], [52, 24], [52, 76], [64, 50]],
+};
+
+const PAT_DEFENSE: Record<number, [number, number][]> = {
+  1: [[52, 50]],
+  2: [[44, 30], [50, 70]],
+  3: [[38, 20], [44, 62], [56, 40]],
+  4: [[36, 16], [42, 58], [54, 32], [56, 76]],
+  5: [[34, 12], [40, 54], [52, 26], [54, 72], [64, 46]],
+  6: [[32, 10], [38, 52], [50, 22], [52, 70], [62, 36], [64, 82]],
+};
+
+function appliquerPattern(
+  pattern: [number, number][],
+  n: number,
+  equipe: SchemaJoueur['equipe'],
+  x0: number, x1: number,
+  y0: number, y1: number,
+  labels?: string[]
+): SchemaJoueur[] {
+  return pattern.slice(0, n).map(([rx, ry], i) =>
+    J(
+      Math.round(x0 + (rx / 100) * (x1 - x0)),
+      Math.round(y0 + (ry / 100) * (y1 - y0)),
+      equipe,
+      labels?.[i]
+    )
+  );
+}
+
+function joueursPossession(n: number, equipe: SchemaJoueur['equipe'], x0: number, x1: number, y0 = 8, y1 = 92, labels?: string[]): SchemaJoueur[] {
+  const capped = Math.min(Math.max(n, 2), 8);
+  const pat = PAT_POSSESSION[capped] ?? PAT_POSSESSION[8]!;
+  return appliquerPattern(pat, capped, equipe, x0, x1, y0, y1, labels);
+}
+
+function joueursPressing(n: number, equipe: SchemaJoueur['equipe'], x0: number, x1: number, y0 = 8, y1 = 92): SchemaJoueur[] {
+  const capped = Math.min(Math.max(n, 2), 7);
+  const pat = PAT_PRESSING[capped] ?? PAT_PRESSING[7]!;
+  return appliquerPattern(pat, capped, equipe, x0, x1, y0, y1);
+}
+
+function joueursAttaque(n: number, x0: number, x1: number, y0 = 8, y1 = 92): SchemaJoueur[] {
+  const capped = Math.min(Math.max(n, 1), 6);
+  const pat = PAT_ATTAQUE[capped] ?? PAT_ATTAQUE[6]!;
+  return appliquerPattern(pat, capped, 'A', x0, x1, y0, y1);
+}
+
+function joueursDefense(n: number, x0: number, x1: number, y0 = 8, y1 = 92): SchemaJoueur[] {
+  const capped = Math.min(Math.max(n, 1), 6);
+  const pat = PAT_DEFENSE[capped] ?? PAT_DEFENSE[6]!;
+  return appliquerPattern(pat, capped, 'B', x0, x1, y0, y1);
+}
+
+/** Rondo organique : légère perturbation par joueur, pas un cercle parfait */
+function rondoOrganique(n: number, equipe: SchemaJoueur['equipe'], cx = 50, cy = 50, rx = 38, ry = 38): SchemaJoueur[] {
+  const perturb: [number, number][] = [[4,-6],[-7,3],[5,5],[-4,-7],[6,4],[-5,6],[3,-5],[-6,2]];
+  return Array.from({ length: n }, (_, i) => {
+    const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+    const [dx, dy] = perturb[i % perturb.length] as [number, number];
+    return J(
+      Math.round(cx + rx * Math.cos(a) + dx),
+      Math.round(cy + ry * Math.sin(a) + dy),
+      equipe,
+      String(i + 1)
+    );
+  });
+}
+
 // ── Schémas types ────────────────────────────────────────────────────────────
 
 export function schemaRondo(nExt: number, nInt: number): SchemaExercice {
-  const ext = cercle(nExt, 'A', 50, 50, 40, 40);
-  const int = grille(nInt, 'B', 40, 40, 60, 60);
+  const ext = rondoOrganique(nExt, 'A');
+  const int: SchemaJoueur[] = nInt >= 2
+    ? [J(43, 44, 'B', 'D1'), J(58, 58, 'B', 'D2')]
+    : [J(44, 47, 'B', 'D')];
   const fleches: SchemaFleche[] = [];
   for (let i = 0; i < Math.min(3, ext.length - 1); i++) {
     fleches.push(F(ext[i].x, ext[i].y, ext[i + 1].x, ext[i + 1].y, 'passe'));
+  }
+  if (int.length > 0 && ext.length > 0) {
+    const target = ext[Math.floor(ext.length / 3)];
+    fleches.push(F(int[0].x, int[0].y, Math.round((int[0].x + target.x) / 2), Math.round((int[0].y + target.y) / 2), 'deplacement'));
   }
   return {
     terrain: { longueur: 12, largeur: 12 },
     joueurs: [...ext, ...int],
     plots: coins(),
-    ballons: ext.length ? [B(ext[0].x + 4, ext[0].y + 4)] : [],
+    ballons: ext.length ? [B(ext[0].x + 4, ext[0].y + 3)] : [],
     fleches,
   };
 }
@@ -193,24 +297,23 @@ export function schemaConservation(
   jokers: number,
   terrain = { longueur: 30, largeur: 25 }
 ): SchemaExercice {
-  const a = grille(nA, 'A', 8, 12, 48, 88);
-  const b = grille(nB, 'B', 52, 12, 92, 88);
+  const a = joueursPossession(nA, 'A', 8, 50);
+  const b = joueursPressing(nB, 'B', 40, 88);
   const jk: SchemaJoueur[] = [];
-  if (jokers >= 1) jk.push(J(50, 6, 'J', 'Joker'));
-  if (jokers >= 2) jk.push(J(50, 94, 'J', 'Joker'));
-  if (jokers >= 3) jk.push(J(4, 50, 'J', 'Joker'));
-  if (jokers >= 4) jk.push(J(96, 50, 'J', 'Joker'));
+  if (jokers >= 1) jk.push(J(50, 4, 'J', 'JK'));
+  if (jokers >= 2) jk.push(J(50, 96, 'J', 'JK'));
+  if (jokers >= 3) jk.push(J(4, 50, 'J', 'JK'));
+  if (jokers >= 4) jk.push(J(96, 50, 'J', 'JK'));
+  const porteur = a[2] ?? a[0];
   const fleches: SchemaFleche[] = [];
-  if (a.length >= 2) fleches.push(F(a[0].x, a[0].y, a[1].x, a[1].y, 'passe'));
-  if (a.length >= 1 && jk.length >= 1)
-    fleches.push(F(a[a.length - 1].x, a[a.length - 1].y, jk[0].x, jk[0].y, 'passe'));
-  if (b.length >= 1)
-    fleches.push(F(b[0].x, b[0].y, b[0].x - 12, b[0].y + 8, 'deplacement'));
+  if (a.length >= 2) fleches.push(F(porteur.x, porteur.y, a[0].x, a[0].y, 'passe'));
+  if (jk.length >= 1) fleches.push(F(a[0].x, a[0].y, jk[0].x, jk[0].y, 'passe'));
+  if (b.length >= 1) fleches.push(F(b[0].x, b[0].y, b[0].x - 14, b[0].y + 6, 'deplacement'));
   return {
     terrain,
     joueurs: [...a, ...b, ...jk],
     plots: coins(),
-    ballons: a.length ? [B(a[0].x + 3, a[0].y - 3)] : [],
+    ballons: [B(porteur.x - 3, porteur.y - 3)],
     fleches,
   };
 }
@@ -221,15 +324,19 @@ export function schemaJeuZones(nA: number, nB: number): SchemaExercice {
     { x: 25, y: 0, largeur: 50, hauteur: 100, label: 'Zone médiane' },
     { x: 75, y: 0, largeur: 25, hauteur: 100, label: 'Zone 2' },
   ];
-  const a = grille(nA, 'A', 8, 15, 48, 85);
-  const b = grille(nB, 'B', 52, 15, 92, 85);
+  const a = joueursPossession(nA, 'A', 8, 46);
+  const b = joueursPressing(nB, 'B', 42, 90);
+  const porteur = a[2] ?? a[0];
   return {
     terrain: { longueur: 40, largeur: 30 },
     joueurs: [...a, ...b],
     plots: coins(),
     zones,
-    ballons: a.length ? [B(a[0].x + 3, a[0].y)] : [],
-    fleches: a.length >= 2 ? [F(a[0].x, a[0].y, a[1].x, a[1].y, 'passe')] : [],
+    ballons: [B(porteur.x - 2, porteur.y - 2)],
+    fleches: a.length >= 2 ? [
+      F(porteur.x, porteur.y, a[0].x, a[0].y, 'passe'),
+      F(a[0].x, a[0].y, 12, a[0].y > 50 ? 18 : 78, 'deplacement'),
+    ] : [],
   };
 }
 
@@ -257,26 +364,21 @@ export function schemaCarrePasses(): SchemaExercice {
 }
 
 export function schemaFinition(): SchemaExercice {
+  const att = joueursAttaque(3, 18, 65);
+  const def = joueursDefense(2, 62, 82);
   const buts: SchemaBut[] = [{ x: 99, y: 50, taille: 'grand', orientation: 'droite' }];
-  const joueurs = [
-    J(99, 50, 'G', 'GB'),
-    J(20, 30, 'A', 'A1'),
-    J(20, 70, 'A', 'A2'),
-    J(45, 50, 'A', 'A3'),
-    J(62, 38, 'B', 'D1'),
-  ];
   const fleches: SchemaFleche[] = [
-    F(20, 30, 45, 50, 'passe'),
-    F(45, 50, 65, 60, 'conduite'),
-    F(65, 60, 95, 52, 'tir'),
-    F(20, 70, 55, 75, 'deplacement'),
+    F(att[0].x, att[0].y, att[1].x, att[1].y, 'passe'),
+    F(att[1].x, att[1].y, att[1].x + 28, Math.round(att[1].y * 0.6 + 10), 'conduite'),
+    F(att[1].x + 28, Math.round(att[1].y * 0.6 + 10), 95, 50, 'tir'),
+    F(att[0].x, att[0].y, def[0].x - 8, def[0].y + 4, 'deplacement'),
   ];
   return {
     terrain: { longueur: 35, largeur: 30 },
-    joueurs,
-    plots: [P(2, 3), P(2, 97), P(40, 3, 'rouge'), P(40, 97, 'rouge')],
+    joueurs: [J(99, 50, 'G', 'GB'), ...att, ...def],
+    plots: [P(2, 3), P(2, 97), P(42, 3, 'rouge'), P(42, 97, 'rouge')],
     buts,
-    ballons: [B(23, 33)],
+    ballons: [B(att[0].x - 3, att[0].y - 2)],
     fleches,
   };
 }
@@ -286,47 +388,48 @@ export function schemaTransition(nAtt: number, nDef: number): SchemaExercice {
     { x: 1, y: 50, taille: 'mini', orientation: 'gauche' },
     { x: 99, y: 50, taille: 'grand', orientation: 'droite' },
   ];
-  const att = grille(nAtt, 'A', 15, 25, 45, 75);
-  const def = grille(nDef, 'B', 60, 30, 80, 70);
-  const fleches: SchemaFleche[] = [
-    F(30, 50, 60, 50, 'conduite'),
-    F(60, 50, 95, 45, 'tir'),
-  ];
-  if (att.length >= 2) fleches.unshift(F(att[0].x, att[0].y, att[1].x, att[1].y, 'passe'));
+  const att = joueursAttaque(nAtt, 12, 48);
+  const def = joueursDefense(nDef, 58, 80);
+  const porteur = att[0];
+  const fleches: SchemaFleche[] = [];
+  if (att.length >= 2) fleches.push(F(att[1].x, att[1].y, porteur.x, porteur.y, 'passe'));
+  fleches.push(F(porteur.x, porteur.y, porteur.x + 22, porteur.y - 4, 'conduite'));
+  fleches.push(F(porteur.x + 22, porteur.y - 4, 95, 48, 'tir'));
+  if (att.length >= 2) fleches.push(F(att[1].x, att[1].y, att[1].x + 18, att[1].y + 8, 'deplacement'));
   return {
     terrain: { longueur: 40, largeur: 30 },
     joueurs: [J(99, 50, 'G', 'GB'), ...att, ...def],
     plots: coins(),
     buts,
-    ballons: att.length ? [B(att[0].x + 3, att[0].y)] : [],
+    ballons: att.length ? [B(att[1]?.x ?? porteur.x - 3, att[1]?.y ?? porteur.y)] : [],
     fleches,
   };
 }
 
 export function schemaDuel1c1(): SchemaExercice {
   const buts: SchemaBut[] = [
-    { x: 99, y: 30, taille: 'mini', orientation: 'droite' },
-    { x: 99, y: 70, taille: 'mini', orientation: 'droite' },
+    { x: 99, y: 28, taille: 'mini', orientation: 'droite' },
+    { x: 99, y: 72, taille: 'mini', orientation: 'droite' },
   ];
   const joueurs = [
-    J(10, 50, 'A', 'ATT'),
-    J(60, 50, 'B', 'DEF'),
-    J(8, 20, 'A'),
-    J(8, 80, 'A'),
-    J(75, 15, 'B'),
-    J(75, 85, 'B'),
+    J(12, 50, 'A', 'ATT'),
+    J(58, 46, 'B', 'DEF'),
+    J(6, 18, 'A', '2'),
+    J(6, 82, 'A', '3'),
+    J(74, 16, 'B', 'D2'),
+    J(76, 84, 'B', 'D3'),
   ];
   const fleches: SchemaFleche[] = [
-    F(10, 50, 45, 42, 'conduite'),
-    F(45, 42, 95, 32, 'tir'),
-    F(60, 50, 45, 45, 'deplacement'),
+    F(12, 50, 38, 44, 'conduite'),
+    F(38, 44, 95, 30, 'tir'),
+    F(58, 46, 42, 48, 'deplacement'),
   ];
   return {
     terrain: { longueur: 20, largeur: 15 },
     joueurs,
     plots: coins(),
     buts,
-    ballons: [B(13, 47)],
+    ballons: [B(15, 48)],
     fleches,
   };
 }
@@ -422,49 +525,41 @@ export function schemaPressing(nA: number, nB: number): SchemaExercice {
   const zones: SchemaZone[] = [
     { x: 0, y: 0, largeur: 33, hauteur: 100, label: 'Z. pressing' },
   ];
-  const a = grille(nA, 'A', 8, 15, 45, 85);
-  const b = grille(nB, 'B', 38, 15, 90, 85);
+  // B has the ball and is under pressure in left third
+  const b = joueursPossession(nB, 'B', 4, 38);
+  // A pressures compactly around the ball area
+  const a = joueursPressing(nA, 'A', 12, 55);
+  const porteurB = b[0];
   const fleches: SchemaFleche[] = [];
   if (a.length >= 2) {
-    fleches.push(F(a[0].x, a[0].y, a[0].x + 14, a[0].y - 5, 'deplacement'));
-    fleches.push(F(a[1].x, a[1].y, a[1].x + 14, a[1].y + 5, 'deplacement'));
+    fleches.push(F(a[0].x, a[0].y, porteurB.x + 6, porteurB.y - 4, 'deplacement'));
+    fleches.push(F(a[1].x, a[1].y, porteurB.x + 8, porteurB.y + 6, 'deplacement'));
   }
-  if (b.length >= 2) fleches.push(F(b[0].x, b[0].y, b[1].x, b[1].y, 'passe'));
+  if (b.length >= 2) fleches.push(F(porteurB.x, porteurB.y, b[1].x, b[1].y, 'passe'));
   return {
     terrain: { longueur: 35, largeur: 25 },
     joueurs: [...a, ...b],
     plots: coins(),
     zones,
-    ballons: b.length ? [B(b[0].x - 3, b[0].y)] : [],
+    ballons: [B(porteurB.x - 3, porteurB.y)],
     fleches,
   };
 }
 
 export function schemaBlocDefensif(): SchemaExercice {
-  const joueurs = [
-    J(8, 50, 'G', 'GB'),
-    J(22, 20, 'A'),
-    J(20, 40, 'A'),
-    J(20, 60, 'A'),
-    J(22, 80, 'A'),
-    J(35, 35, 'A'),
-    J(35, 65, 'A'),
-    J(55, 25, 'B'),
-    J(50, 50, 'B'),
-    J(55, 75, 'B'),
-    J(68, 50, 'B'),
-  ];
+  const def = joueursDefense(6, 6, 46);
+  const att = joueursPossession(4, 'B', 46, 88);
   const fleches: SchemaFleche[] = [
-    F(50, 50, 35, 50, 'conduite'),
-    F(35, 35, 30, 45, 'deplacement'),
-    F(35, 65, 30, 55, 'deplacement'),
+    F(att[0].x, att[0].y, att[0].x - 14, att[0].y + 4, 'conduite'),
+    F(def[0].x, def[0].y, def[0].x + 8, def[0].y + 6, 'deplacement'),
+    F(def[2]?.x ?? def[1].x, def[2]?.y ?? def[1].y, (def[2]?.x ?? def[1].x) + 6, (def[2]?.y ?? def[1].y) - 8, 'deplacement'),
   ];
   return {
     terrain: { longueur: 50, largeur: 40 },
-    joueurs,
+    joueurs: [J(4, 50, 'G', 'GB'), ...def, ...att],
     plots: coins(),
     buts: [{ x: 1, y: 50, taille: 'grand', orientation: 'gauche' }],
-    ballons: [B(48, 48)],
+    ballons: [B(att[0].x - 3, att[0].y - 2)],
     fleches,
   };
 }
@@ -476,8 +571,8 @@ export function schemaMatch(
   terrain = { longueur: 50, largeur: 35 }
 ): SchemaExercice {
   const withGK = grandsButs && nA >= 4 && nB >= 4;
-  const a = grille(withGK ? nA - 1 : nA, 'A', 10, 15, 45, 85);
-  const b = grille(withGK ? nB - 1 : nB, 'B', 55, 15, 90, 85);
+  const a = joueursPossession(withGK ? nA - 1 : nA, 'A', 8, 46);
+  const b = joueursPossession(withGK ? nB - 1 : nB, 'B', 54, 92);
   const gks: SchemaJoueur[] = withGK
     ? [J(3, 50, 'G', 'GB'), J(97, 50, 'G', 'GB')]
     : [];
@@ -492,13 +587,17 @@ export function schemaMatch(
         { x: 99, y: 30, taille: 'mini', orientation: 'droite' },
         { x: 99, y: 70, taille: 'mini', orientation: 'droite' },
       ];
+  const porteurA = a[2] ?? a[0];
   return {
     terrain,
     joueurs: [...gks, ...a, ...b],
     plots: coins(),
     buts,
-    ballons: [B(50, 50)],
-    fleches: a.length >= 2 ? [F(a[0].x, a[0].y, a[1].x, a[1].y, 'passe')] : [],
+    ballons: porteurA ? [B(porteurA.x + 3, porteurA.y - 3)] : [B(50, 50)],
+    fleches: a.length >= 2 && porteurA
+      ? [F(porteurA.x, porteurA.y, a[0].x, a[0].y, 'passe'),
+         b.length >= 1 ? F(b[0].x, b[0].y, b[0].x - 10, b[0].y + 5, 'deplacement') : null].filter(Boolean) as SchemaFleche[]
+      : [],
   };
 }
 
@@ -545,21 +644,20 @@ export function schemaJeuLargeur(nA: number, nB: number): SchemaExercice {
     { x: 0, y: 28, largeur: 100, hauteur: 44, label: 'Zone centrale' },
     { x: 0, y: 72, largeur: 100, hauteur: 28, label: 'Couloir D' },
   ];
-  const a = grille(nA, 'A', 8, 10, 45, 90);
-  const b = grille(nB, 'B', 55, 10, 92, 90);
-  const fleches: SchemaFleche[] = [];
-  if (a.length >= 2) {
-    fleches.push(F(a[0].x, a[0].y, a[1].x, a[1].y, 'passe'));
-    fleches.push(F(a[1].x, a[1].y, a[1].x + 15, 10, 'passe'));
-    fleches.push(F(a[1].x + 15, 10, a[1].x + 20, 35, 'deplacement'));
-  }
+  const a = joueursPossession(nA, 'A', 8, 46);
+  const b = joueursPressing(nB, 'B', 42, 90);
+  const porteur = a[2] ?? a[0];
   return {
     terrain: { longueur: 40, largeur: 35 },
     joueurs: [...a, ...b],
     plots: coins(),
     zones,
-    ballons: a.length ? [B(a[0].x + 3, a[0].y)] : [],
-    fleches,
+    ballons: porteur ? [B(porteur.x - 2, porteur.y)] : [],
+    fleches: a.length >= 2 ? [
+      F(porteur.x, porteur.y, a[0].x, a[0].y, 'passe'),
+      F(a[0].x, a[0].y, a[0].x + 12, 14, 'deplacement'),
+      F(a[0].x + 12, 14, a[0].x + 18, 38, 'passe'),
+    ] : [],
   };
 }
 
@@ -593,21 +691,24 @@ export function schemaMatchZoneCentrale(nA: number, nB: number, grandsButs: bool
     { x: 37, y: 0, largeur: 26, hauteur: 100, label: 'Zone libre' },
   ];
   const withGK = grandsButs && nA >= 4 && nB >= 4;
-  const a = grille(withGK ? nA - 1 : nA, 'A', 5, 10, 35, 90);
-  const b = grille(withGK ? nB - 1 : nB, 'B', 63, 10, 95, 90);
+  const a = joueursPossession(withGK ? nA - 1 : nA, 'A', 5, 35);
+  const b = joueursPossession(withGK ? nB - 1 : nB, 'B', 63, 95);
   const gks: SchemaJoueur[] = withGK ? [J(2, 50, 'G', 'GB'), J(98, 50, 'G', 'GB')] : [];
   const buts: SchemaBut[] = grandsButs
     ? [{ x: 1, y: 50, taille: 'grand', orientation: 'gauche' }, { x: 99, y: 50, taille: 'grand', orientation: 'droite' }]
     : [{ x: 1, y: 35, taille: 'mini', orientation: 'gauche' }, { x: 1, y: 65, taille: 'mini', orientation: 'gauche' },
        { x: 99, y: 35, taille: 'mini', orientation: 'droite' }, { x: 99, y: 65, taille: 'mini', orientation: 'droite' }];
+  const porteurA = a[2] ?? a[0];
   return {
     terrain: { longueur: 50, largeur: 35 },
     joueurs: [...gks, ...a, ...b],
     plots: coins(),
     buts,
     zones,
-    ballons: [B(50, 50)],
-    fleches: a.length >= 1 ? [F(a[0].x, a[0].y, 50, 48, 'passe'), F(50, 48, b[0]?.x ?? 70, b[0]?.y ?? 50, 'deplacement')] : [],
+    ballons: porteurA ? [B(porteurA.x + 2, porteurA.y - 2)] : [B(50, 50)],
+    fleches: porteurA && b.length >= 1
+      ? [F(porteurA.x, porteurA.y, 50, porteurA.y - 5, 'passe'), F(50, porteurA.y - 5, b[0].x - 8, b[0].y, 'deplacement')]
+      : [],
   };
 }
 

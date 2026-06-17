@@ -16,12 +16,14 @@ const MODEL = 'gemini-2.5-flash';
 
 function exempleSchema(): string {
   return JSON.stringify({
-    terrain: { longueur: 30, largeur: 25 },
+    terrain: { longueur: 30, largeur: 24 },
     joueurs: [
-      { x: 20, y: 30, equipe: 'A', label: 'A1' },
-      { x: 20, y: 70, equipe: 'A' },
-      { x: 60, y: 50, equipe: 'B' },
-      { x: 50, y: 5, equipe: 'J', label: 'Joker' },
+      { x: 14, y: 18, equipe: 'A', label: 'A1' },
+      { x: 18, y: 74, equipe: 'A', label: 'A2' },
+      { x: 36, y: 44, equipe: 'A', label: 'A3' },
+      { x: 46, y: 10, equipe: 'J', label: 'JK' },
+      { x: 58, y: 28, equipe: 'B', label: 'D1' },
+      { x: 62, y: 66, equipe: 'B', label: 'D2' },
       { x: 97, y: 50, equipe: 'G', label: 'GB' },
     ],
     plots: [
@@ -30,14 +32,15 @@ function exempleSchema(): string {
       { x: 2, y: 97, couleur: 'jaune' },
       { x: 98, y: 97, couleur: 'jaune' },
     ],
-    ballons: [{ x: 23, y: 33 }],
+    ballons: [{ x: 38, y: 46 }],
     buts: [{ x: 99, y: 50, taille: 'grand', orientation: 'droite' }],
-    zones: [{ x: 0, y: 0, largeur: 33, hauteur: 100, label: 'Zone pressing' }],
+    zones: [{ x: 0, y: 0, largeur: 30, hauteur: 100, label: 'Z. pressing' }],
     fleches: [
-      { de: { x: 20, y: 30 }, vers: { x: 20, y: 70 }, type: 'passe' },
-      { de: { x: 20, y: 70 }, vers: { x: 45, y: 60 }, type: 'conduite' },
-      { de: { x: 45, y: 60 }, vers: { x: 95, y: 50 }, type: 'tir' },
-      { de: { x: 60, y: 50 }, vers: { x: 50, y: 55 }, type: 'deplacement' },
+      { de: { x: 36, y: 44 }, vers: { x: 14, y: 18 }, type: 'passe' },
+      { de: { x: 14, y: 18 }, vers: { x: 46, y: 10 }, type: 'passe' },
+      { de: { x: 46, y: 10 }, vers: { x: 88, y: 44 }, type: 'conduite' },
+      { de: { x: 88, y: 44 }, vers: { x: 97, y: 50 }, type: 'tir' },
+      { de: { x: 58, y: 28 }, vers: { x: 50, y: 36 }, type: 'deplacement' },
     ],
   });
 }
