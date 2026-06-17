@@ -69,45 +69,52 @@ export async function POST(request: NextRequest) {
       ? (body.exercicesRecents as string[]).filter((s) => typeof s === 'string')
       : undefined;
 
-    if (email && adminDb) {
-      try {
-        const userDoc = await adminDb.collection('users_access').doc(email).get();
-        if (userDoc.exists) {
-          const userData = userDoc.data();
-          const plan = userData?.plan || 'trial';
-          const used = userData?.usage?.sessionsGeneratedThisMonth || 0;
-          const limit = getLimit(plan, 'sessionsPerMonth');
-          if (limit !== -1 && used >= limit) {
-            return NextResponse.json(
-              {
-                success: false,
-                error: 'Limite mensuelle de séances atteinte',
-                hint: 'Passez au plan Coach Pro pour générer des séances en illimité.',
-              },
-              { status: 403 }
-            );
-          }
-        }
-      } catch (e) {
-        console.error('Vérification quota impossible :', e);
-      }
-    }
-
-    const { draft, source } = await generateDraft(params, exercicesRecents);
-
+    // Vérification du quota mensuel
     if (email && adminDb) {
       try {
         const userRef = adminDb.collection('users_access').doc(email);
         const userDoc = await userRef.get();
         if (userDoc.exists) {
-          const used = userDoc.data()?.usage?.sessionsGeneratedThisMonth || 0;
-          await userRef.update({ 'usage.sessionsGeneratedThisMonth': used + 1 });
+          const userData = userDoc.data()!;
+          const plan = userData.plan || 'trial';
+          const limit = getLimit(plan, 'sessionsPerMonth');
+
+          if (limit !== -1) {
+            const currentMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+            const trackedMonth = userData.usage?.currentMonth;
+            // Remise à zéro automatique si nouveau mois
+            const used = trackedMonth === currentMonth
+              ? (userData.usage?.sessionsGeneratedThisMonth || 0)
+              : 0;
+
+            if (used >= limit) {
+              return NextResponse.json(
+                {
+                  success: false,
+                  error: 'Limite mensuelle de séances atteinte',
+                  hint: 'Passez au plan Coach Pro pour générer des séances en illimité.',
+                },
+                { status: 403 }
+              );
+            }
+
+            // Incrément compteur (après génération réussie)
+            const { draft, source } = await generateDraft(params, exercicesRecents);
+            await userRef.update({
+              'usage.sessionsGeneratedThisMonth': used + 1,
+              'usage.currentMonth': currentMonth,
+            }).catch((e) => console.error('Incrément quota impossible :', e));
+            return NextResponse.json({ success: true, data: draft, source });
+          }
         }
       } catch (e) {
-        console.error('Incrément du compteur impossible :', e);
+        console.error('Vérification quota impossible :', e);
+        // En cas d'erreur Firestore, on laisse passer sans bloquer
       }
     }
 
+    // Pas de quota (plan illimité, pas d'email, ou Firestore non configuré)
+    const { draft, source } = await generateDraft(params, exercicesRecents);
     return NextResponse.json({ success: true, data: draft, source });
   } catch (error) {
     console.error('Erreur génération draft :', error);

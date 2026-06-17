@@ -78,21 +78,28 @@ export async function POST(request: NextRequest) {
     // Quota mensuel (si l'utilisateur est identifié et Firestore configuré)
     if (email && adminDb) {
       try {
-        const userDoc = await adminDb.collection('users_access').doc(email).get();
+        const userRef = adminDb.collection('users_access').doc(email);
+        const userDoc = await userRef.get();
         if (userDoc.exists) {
-          const userData = userDoc.data();
-          const plan = userData?.plan || 'trial';
-          const used = userData?.usage?.sessionsGeneratedThisMonth || 0;
+          const userData = userDoc.data()!;
+          const plan = userData.plan || 'trial';
           const limit = getLimit(plan, 'sessionsPerMonth');
-          if (limit !== -1 && used >= limit) {
-            return NextResponse.json(
-              {
-                success: false,
-                error: 'Limite mensuelle de séances atteinte',
-                hint: 'Passez au plan Coach Pro pour générer des séances en illimité.',
-              },
-              { status: 403 }
-            );
+          if (limit !== -1) {
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            const trackedMonth = userData.usage?.currentMonth;
+            const used = trackedMonth === currentMonth
+              ? (userData.usage?.sessionsGeneratedThisMonth || 0)
+              : 0;
+            if (used >= limit) {
+              return NextResponse.json(
+                {
+                  success: false,
+                  error: 'Limite mensuelle de séances atteinte',
+                  hint: 'Passez au plan Coach Pro pour générer des séances en illimité.',
+                },
+                { status: 403 }
+              );
+            }
           }
         }
       } catch (e) {
@@ -111,8 +118,15 @@ export async function POST(request: NextRequest) {
         const userRef = adminDb.collection('users_access').doc(email);
         const userDoc = await userRef.get();
         if (userDoc.exists) {
-          const used = userDoc.data()?.usage?.sessionsGeneratedThisMonth || 0;
-          await userRef.update({ 'usage.sessionsGeneratedThisMonth': used + 1 });
+          const currentMonth = new Date().toISOString().slice(0, 7);
+          const trackedMonth = userDoc.data()?.usage?.currentMonth;
+          const used = trackedMonth === currentMonth
+            ? (userDoc.data()?.usage?.sessionsGeneratedThisMonth || 0)
+            : 0;
+          await userRef.update({
+            'usage.sessionsGeneratedThisMonth': used + 1,
+            'usage.currentMonth': currentMonth,
+          });
         }
       } catch (e) {
         console.error('Incrément du compteur impossible :', e);
