@@ -2,41 +2,14 @@
  * Script admin : définir le plan d'un ou plusieurs utilisateurs dans Firestore.
  *
  * Usage :
- *   node scripts/set-plan.mjs coach_pro email1@example.com email2@example.com
- *   node scripts/set-plan.mjs trial email@example.com
+ *   node --env-file=.env.local scripts/set-plan.mjs coach_pro email1@example.com email2@example.com
+ *   node --env-file=.env.local scripts/set-plan.mjs trial email@example.com
  *
  * Requiert les variables d'environnement Firebase dans .env.local :
  *   FIREBASE_PROJECT_ID
  *   FIREBASE_CLIENT_EMAIL
  *   FIREBASE_PRIVATE_KEY
  */
-
-import { readFileSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-// Charger .env.local manuellement (pas de dotenv requis)
-function loadEnv() {
-  const envPath = resolve(__dirname, '../.env.local');
-  try {
-    const raw = readFileSync(envPath, 'utf-8');
-    for (const line of raw.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const idx = trimmed.indexOf('=');
-      if (idx === -1) continue;
-      const key = trimmed.slice(0, idx).trim();
-      const val = trimmed.slice(idx + 1).trim().replace(/^["']|["']$/g, '');
-      process.env[key] = val;
-    }
-  } catch {
-    // .env.local absent — on suppose que les vars sont déjà dans l'env
-  }
-}
-
-loadEnv();
 
 const VALID_PLANS = ['trial', 'coach_pro', 'rt_manager'];
 const [, , plan, ...emails] = process.argv;
