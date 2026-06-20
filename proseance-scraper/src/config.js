@@ -22,7 +22,7 @@ export const KEYWORD_TO_CATEGORY = {
   fitness: 'fitness', sprint: 'fitness', agilité: 'fitness', coordination: 'fitness',
   // tactical
   tactique: 'tactical', tactique: 'tactical', tactical: 'tactical', organisation: 'tactical',
-  formation: 'tactical', jeu collectif: 'tactical', animation: 'tactical',
+  formation: 'tactical', 'jeu collectif': 'tactical', animation: 'tactical',
   // set_piece
   coup: 'set_piece', corner: 'set_piece', 'coup franc': 'set_piece', penalty: 'set_piece',
   'phase arrêtée': 'set_piece', 'dead ball': 'set_piece', 'set piece': 'set_piece',
@@ -36,7 +36,7 @@ export const KEYWORD_TO_CATEGORY = {
   pressing: 'pressing', récupération: 'pressing', pressing: 'pressing',
   'haute pression': 'pressing', 'pressing haut': 'pressing', repli: 'pressing',
   // transition
-  transition: 'transition', contre: 'transition', contre-attaque: 'transition',
+  transition: 'transition', contre: 'transition', 'contre-attaque': 'transition',
   'jeu rapide': 'transition', 'sortie de balle': 'transition',
   // warm_up
   échauffement: 'warm_up', warmup: 'warm_up', 'mise en train': 'warm_up',
