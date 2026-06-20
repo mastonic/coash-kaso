@@ -19,7 +19,7 @@ import { filterByQuality, deduplicateExercises } from './utils/helpers.js';
 import { DELAYS } from './config.js';
 
 // ── Scrapers FR ───────────────────────────────────────────────────────────────
-import { scrapMycoachfootball } from './scrapers/fr/mycoachfootball.js';
+import { scrapEntrainementfoot } from './scrapers/fr/entrainementfoot.js';
 import { scrapEntrainementdefoot } from './scrapers/fr/entrainementdefoot.js';
 import { scrapExercicesdefoot } from './scrapers/fr/exercicesdefoot.js';
 import { scrapFootballtraining4all } from './scrapers/fr/footballtraining4all.js';
@@ -45,7 +45,7 @@ import { scrapTrainerssite } from './scrapers/nl/trainerssite.js';
 // ── Registry ──────────────────────────────────────────────────────────────────
 
 const SCRAPERS = [
-  { id: 'mycoachfootball',       country: 'FR', fn: scrapMycoachfootball },
+  { id: 'entrainementfoot',      country: 'FR', fn: scrapEntrainementfoot },
   { id: 'entrainementdefoot',    country: 'FR', fn: scrapEntrainementdefoot },
   { id: 'exercicesdefoot',       country: 'FR', fn: scrapExercicesdefoot },
   { id: 'footballtraining4all',  country: 'FR', fn: scrapFootballtraining4all },
