@@ -1,7 +1,5 @@
-/**
- * Scraper — entrainementdefoot.com (FR)
- * Pagination par catégorie : /category/*/page/N/
- */
+// Scraper — entrainementdefoot.com (FR)
+// Pagination par catégorie : /category/{cat}/page/N/
 
 import { loadPage, buildExercise, deduplicateExercises, sleep } from '../../utils/helpers.js';
 import { DELAYS } from '../../config.js';
