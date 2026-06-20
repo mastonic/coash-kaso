@@ -4,6 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { MiniGeneratorDemo } from '@/components/landing/MiniGeneratorDemo';
 import { LeadModal } from '@/components/landing/LeadModal';
+import { HeroPitch } from '@/components/landing/HeroPitch';
+import { ProductTour } from '@/components/landing/ProductTour';
+import { StatsBand } from '@/components/landing/StatsBand';
+import { Reveal } from '@/components/landing/Reveal';
 
 export default function ProSéanceLanding() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -16,10 +20,8 @@ export default function ProSéanceLanding() {
       return;
     }
 
-    // For paid plans, initiate checkout
     const email = localStorage.getItem('userEmail');
     if (!email) {
-      // Show login/signup first
       setIsModalOpen(true);
       localStorage.setItem('selectedPlan', plan);
       return;
@@ -48,330 +50,371 @@ export default function ProSéanceLanding() {
     }
   };
 
+  const navLinks = [
+    { href: '#demo', label: 'La démo' },
+    { href: '#features', label: 'Capacités' },
+    { href: '#pricing', label: 'Tarifs' },
+  ];
+
   return (
-    <div className="min-h-screen w-screen bg-[#0A0F0D] text-[#F3F4F6] overflow-x-hidden">
-      {/* Animated neon grid background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(57,255,20,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(57,255,20,0.02)_1px,transparent_1px)] bg-[60px_60px]"></div>
-        <div className="absolute top-0 right-0 w-[300px] h-[300px] sm:w-[400px] sm:h-[400px] lg:w-[500px] lg:h-[500px] bg-[#39FF14] rounded-full blur-3xl opacity-5 animate-pulse"></div>
-        <div className="absolute bottom-20 left-0 w-[250px] h-[250px] sm:w-[300px] sm:h-[300px] lg:w-[400px] lg:h-[400px] bg-[#10B981] rounded-full blur-3xl opacity-3"></div>
+    <div className="min-h-screen w-screen overflow-x-hidden bg-[#0A0F0D] text-[#F3F4F6]">
+      {/* Fond : grille néon + halos */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(57,255,20,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(57,255,20,0.02)_1px,transparent_1px)] bg-[60px_60px]" />
+        <div className="absolute right-0 top-0 h-[300px] w-[300px] animate-pulse rounded-full bg-[#39FF14] opacity-5 blur-3xl sm:h-[400px] sm:w-[400px] lg:h-[500px] lg:w-[500px]" />
+        <div className="absolute bottom-20 left-0 h-[250px] w-[250px] rounded-full bg-[#10B981] opacity-3 blur-3xl sm:h-[300px] sm:w-[300px] lg:h-[400px] lg:w-[400px]" />
       </div>
 
-      {/* Content */}
       <div className="relative z-10">
-        {/* Navigation */}
-        <nav className="border-b border-[rgba(57,255,20,0.1)] backdrop-blur-md sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-5 flex items-center justify-between">
-            <div className="text-2xl md:text-3xl font-black tracking-tighter animate-fade-in-up">
-              <span className="text-[#F3F4F6]">PROSEANCE</span>
-              <span className="text-[#39FF14] ml-1 md:ml-2">AI</span>
-            </div>
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex gap-12 items-center">
-              <a href="#features" className="text-[#9CA3AF] hover:text-[#39FF14] hover:drop-shadow-[0_0_10px_rgba(57,255,20,0.4)] transition-all duration-200 text-sm font-semibold uppercase tracking-wide">
-                Capacités
-              </a>
-              <a href="#roles" className="text-[#9CA3AF] hover:text-[#39FF14] hover:drop-shadow-[0_0_10px_rgba(57,255,20,0.4)] transition-all duration-200 text-sm font-semibold uppercase tracking-wide">
-                Pour Qui
-              </a>
-              <a href="#pricing" className="text-[#9CA3AF] hover:text-[#39FF14] hover:drop-shadow-[0_0_10px_rgba(57,255,20,0.4)] transition-all duration-200 text-sm font-semibold uppercase tracking-wide">
-                Tarifs
-              </a>
-              <div className="border-l border-[rgba(57,255,20,0.2)] md:pl-12 flex gap-4">
-                <Link href="/login" className="text-[#39FF14] hover:text-[#10B981] font-bold py-2 px-4 rounded hover:bg-[rgba(57,255,20,0.1)] transition-all uppercase text-sm">
-                  🔑 Se Connecter
-                </Link>
-                <Link href="/admin/leads" className="text-[#9CA3AF] hover:text-[#39FF14] font-bold py-2 px-4 rounded hover:bg-[rgba(57,255,20,0.1)] transition-all uppercase text-sm">
-                  ⚙️ Admin
-                </Link>
-              </div>
+        {/* ── Navigation ── */}
+        <nav className="sticky top-0 z-50 border-b border-[rgba(57,255,20,0.1)] bg-[#0A0F0D]/80 backdrop-blur-md">
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-6">
+            <div className="text-2xl font-black tracking-tighter md:text-3xl">
+              <span className="text-[#F3F4F6]">PRO</span>
+              <span className="anim-text-shine">SÉANCE</span>
             </div>
 
-            {/* Mobile Menu Button */}
+            <div className="hidden items-center gap-10 md:flex">
+              {navLinks.map((l) => (
+                <a
+                  key={l.href}
+                  href={l.href}
+                  className="text-sm font-semibold uppercase tracking-wide text-[#9CA3AF] transition-all duration-200 hover:text-[#39FF14] hover:drop-shadow-[0_0_10px_rgba(57,255,20,0.4)]"
+                >
+                  {l.label}
+                </a>
+              ))}
+              <Link
+                href="/login"
+                className="rounded-lg border border-[rgba(57,255,20,0.4)] px-5 py-2 text-sm font-bold uppercase text-[#39FF14] transition-all hover:bg-[rgba(57,255,20,0.1)] hover:shadow-[0_0_20px_rgba(57,255,20,0.3)]"
+              >
+                Se connecter
+              </Link>
+            </div>
+
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden text-[#39FF14] hover:text-[#39FF14]/80 transition-colors flex items-center gap-2"
-              title="Menu"
+              className="text-[#39FF14] transition-colors md:hidden"
+              aria-label="Menu"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mobileMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d={mobileMenuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'}
+                />
               </svg>
             </button>
           </div>
 
-          {/* Mobile Menu */}
           {mobileMenuOpen && (
-            <div className="md:hidden border-t border-[rgba(57,255,20,0.1)] bg-[#0A0F0D]/95 backdrop-blur-md">
-              <div className="px-4 py-4 space-y-3 max-w-7xl mx-auto">
-                <a
-                  href="#features"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block text-[#9CA3AF] hover:text-[#39FF14] font-semibold text-sm uppercase tracking-wide py-2 transition-colors"
-                >
-                  Capacités
-                </a>
-                <a
-                  href="#roles"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block text-[#9CA3AF] hover:text-[#39FF14] font-semibold text-sm uppercase tracking-wide py-2 transition-colors"
-                >
-                  Pour Qui
-                </a>
-                <a
-                  href="#pricing"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block text-[#9CA3AF] hover:text-[#39FF14] font-semibold text-sm uppercase tracking-wide py-2 transition-colors"
-                >
-                  Tarifs
-                </a>
-                <div className="border-t border-[rgba(57,255,20,0.2)] pt-3 mt-3 space-y-2">
-                  <Link
-                    href="/login"
+            <div className="border-t border-[rgba(57,255,20,0.1)] bg-[#0A0F0D]/95 backdrop-blur-md md:hidden">
+              <div className="mx-auto max-w-7xl space-y-2 px-4 py-4">
+                {navLinks.map((l) => (
+                  <a
+                    key={l.href}
+                    href={l.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block text-[#39FF14] hover:text-[#10B981] font-bold py-2 px-3 rounded hover:bg-[rgba(57,255,20,0.1)] transition-all uppercase text-xs text-center"
+                    className="block py-2 text-sm font-semibold uppercase tracking-wide text-[#9CA3AF] transition-colors hover:text-[#39FF14]"
                   >
-                    🔑 Se Connecter
-                  </Link>
-                  <Link
-                    href="/admin/leads"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block text-[#9CA3AF] hover:text-[#39FF14] font-bold py-2 px-3 rounded hover:bg-[rgba(57,255,20,0.1)] transition-all uppercase text-xs text-center"
-                  >
-                    ⚙️ Admin
-                  </Link>
-                </div>
+                    {l.label}
+                  </a>
+                ))}
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block rounded-lg border border-[rgba(57,255,20,0.4)] py-2.5 text-center text-sm font-bold uppercase text-[#39FF14]"
+                >
+                  Se connecter
+                </Link>
               </div>
             </div>
           )}
         </nav>
 
-        {/* Hero Section - Product First with Mini Demo */}
-        <section className="relative overflow-hidden py-12 md:py-20">
-          <div className="max-w-7xl mx-auto px-4 md:px-6">
-            {/* Hero Text */}
-            <div className="text-center mb-12 md:mb-20 space-y-4 md:space-y-6 animate-fade-in-up">
-              <div className="inline-block">
-                <span className="text-xs font-black uppercase tracking-widest text-[#39FF14] bg-[rgba(57,255,20,0.1)] px-3 md:px-4 py-2 rounded-full border border-[rgba(57,255,20,0.3)]">
-                  ⚡ L'assistant IA de ton terrain
+        {/* ── Héros ── */}
+        <section className="relative mx-auto max-w-7xl px-4 pb-10 pt-10 md:px-6 md:pb-20 md:pt-16">
+          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+            {/* Texte */}
+            <div className="space-y-6 text-center lg:text-left">
+              <Reveal>
+                <span className="inline-block rounded-full border border-[rgba(57,255,20,0.3)] bg-[rgba(57,255,20,0.1)] px-4 py-2 text-xs font-black uppercase tracking-widest text-[#39FF14]">
+                  ⚡ Méthodologie FFF · PWA hors-ligne
                 </span>
-              </div>
+              </Reveal>
 
-              <div className="space-y-4 md:space-y-6">
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black leading-tight tracking-tighter">
-                  <span className="text-[#F3F4F6]">Génère des</span>
+              <Reveal delay={120}>
+                <h1 className="text-4xl font-black leading-[1.05] tracking-tighter sm:text-5xl xl:text-6xl">
+                  Ta séance complète,
                   <br />
-                  <span className="text-[#39FF14] drop-shadow-[0_0_20px_rgba(57,255,20,0.5)]">séances en 3 sec</span>
+                  <span className="anim-text-shine">plan d&apos;exercice inclus.</span>
                 </h1>
-                <p className="text-base md:text-lg lg:text-xl text-[#9CA3AF] leading-relaxed max-w-2xl mx-auto px-2">
-                  ProSéance génère des entraînements d'élite adaptés à ta charge, analyse tes vidéos, et pilote ta saison. Pour les entraîneurs qui veulent du temps de qualité avec leurs joueurs.
+              </Reveal>
+
+              <Reveal delay={240}>
+                <p className="mx-auto max-w-xl text-base leading-relaxed text-[#9CA3AF] md:text-lg lg:mx-0">
+                  ProSéance génère des séances d&apos;entraînement selon la méthodologie FFF :
+                  4 phases, fiches détaillées, et le <span className="font-bold text-[#F3F4F6]">schéma tactique de chaque exercice</span> —
+                  joueurs, plots, passes, conduite, tir.
                 </p>
-              </div>
+              </Reveal>
 
-              {/* Mini CTA */}
-              <div className="flex flex-col gap-3 justify-center pt-2 md:pt-4 w-full sm:w-auto sm:mx-auto">
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="group relative inline-flex items-center justify-center px-6 md:px-8 py-3 md:py-4 font-bold text-[#0A0F0D] bg-[#39FF14] rounded-lg overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-[0_0_60px_rgba(57,255,20,0.8)] uppercase tracking-wide animate-pop text-sm md:text-base"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 transition-opacity duration-500" />
-                  <span className="relative z-10 whitespace-nowrap">⚡ Accès Complet (7j)</span>
-                </button>
-              </div>
+              <Reveal delay={360}>
+                <div className="flex flex-col items-center gap-3 sm:flex-row lg:justify-start sm:justify-center">
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="group relative inline-flex items-center justify-center overflow-hidden rounded-lg bg-[#39FF14] px-8 py-4 text-sm font-bold uppercase tracking-wide text-[#0A0F0D] transition-all duration-300 hover:scale-105 hover:shadow-[0_0_60px_rgba(57,255,20,0.8)] md:text-base"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-20" />
+                    <span className="relative z-10">⚡ Essai gratuit 7 jours</span>
+                  </button>
+                  <a
+                    href="#demo"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-[rgba(57,255,20,0.4)] px-8 py-4 text-sm font-bold uppercase tracking-wide text-[#39FF14] transition-all hover:bg-[rgba(57,255,20,0.08)] md:text-base"
+                  >
+                    ▶ Voir la démo
+                  </a>
+                </div>
+              </Reveal>
 
-              {/* Login Link for Existing Users */}
-              <div className="text-center pt-2">
-                <p className="text-[#9CA3AF] text-xs md:text-sm px-2">
-                  Déjà inscrit?{' '}
-                  <Link href="/login" className="text-[#39FF14] font-bold hover:text-[#10B981] hover:drop-shadow-[0_0_10px_rgba(57,255,20,0.5)] transition-all duration-200">
-                    Se connecter →
-                  </Link>
-                </p>
-              </div>
+              <Reveal delay={480}>
+                <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-[#9CA3AF] md:text-sm lg:justify-start">
+                  <span className="flex items-center gap-1.5"><span className="text-[#39FF14]">✓</span> Sans carte bancaire</span>
+                  <span className="flex items-center gap-1.5"><span className="text-[#39FF14]">✓</span> U6 → Seniors</span>
+                  <span className="flex items-center gap-1.5"><span className="text-[#39FF14]">✓</span> Marche hors-ligne</span>
+                </div>
+              </Reveal>
             </div>
 
-            {/* Mini Generator Demo - Center Product */}
-            <div className="mb-12 md:mb-24 animate-fade-in-up overflow-x-hidden" style={{ animationDelay: '100ms' }}>
-              <MiniGeneratorDemo />
-            </div>
-
-            {/* Trust Signals */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-8 pt-6 md:pt-12 pb-12 md:pb-24 text-xs md:text-sm text-[#9CA3AF] animate-fade-in-up px-4" style={{ animationDelay: '200ms' }}>
-              <div className="flex items-center gap-2">
-                <span className="text-[#39FF14] text-lg">✓</span>
-                <span>Gratuit 7 jours</span>
+            {/* Terrain animé */}
+            <Reveal delay={200}>
+              <div className="relative">
+                <div className="absolute -inset-4 rounded-3xl bg-[#39FF14] opacity-[0.06] blur-2xl" />
+                <div className="relative overflow-hidden rounded-2xl border border-[rgba(57,255,20,0.25)] shadow-[0_0_50px_rgba(57,255,20,0.1)]">
+                  <HeroPitch />
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[#39FF14] text-lg">✓</span>
-                <span>Sans code carte</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[#39FF14] text-lg">✓</span>
-                <span>Annulable 1 clic</span>
-              </div>
-            </div>
+            </Reveal>
           </div>
         </section>
 
-        {/* Features Section */}
-        <section id="features" className="max-w-7xl mx-auto px-4 md:px-6 py-12 md:py-24 space-y-8 md:space-y-16 animate-fade-in-up">
-          <div className="text-center space-y-3 md:space-y-4 animate-fade-in-up px-2">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter">
-              <span className="text-[#F3F4F6]">Triple Force</span>
-              <br />
-              <span className="text-[#39FF14]">du Coaching IA</span>
-            </h2>
-          </div>
+        {/* ── Stats + marquee ── */}
+        <StatsBand />
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        {/* ── La démo en motion ── */}
+        <section id="demo" className="mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-24">
+          <Reveal>
+            <div className="mb-10 space-y-3 text-center md:mb-14">
+              <h2 className="text-3xl font-black tracking-tighter md:text-5xl">
+                Vois ProSéance <span className="anim-text-shine">en action</span>
+              </h2>
+              <p className="mx-auto max-w-2xl text-sm text-[#9CA3AF] md:text-base">
+                De la configuration au bord du terrain : la démo se joue toute seule.
+                Clique sur un chapitre pour naviguer.
+              </p>
+            </div>
+          </Reveal>
+          <Reveal delay={150}>
+            <ProductTour />
+          </Reveal>
+        </section>
+
+        {/* ── Comment ça marche ── */}
+        <section className="mx-auto max-w-5xl px-4 py-12 md:px-6 md:py-20">
+          <Reveal>
+            <h2 className="mb-12 text-center text-3xl font-black tracking-tighter md:text-4xl">
+              3 étapes, <span className="text-[#39FF14]">0 papier-crayon</span>
+            </h2>
+          </Reveal>
+
+          <div className="relative grid gap-8 md:grid-cols-3 md:gap-6">
+            {/* Ligne de connexion (desktop) */}
+            <div className="absolute left-[16%] right-[16%] top-9 hidden h-0.5 bg-gradient-to-r from-[#39FF14]/10 via-[#39FF14]/50 to-[#39FF14]/10 md:block" />
             {[
               {
-                icon: '⚡',
-                title: 'Générer en 3s',
-                desc: 'Séances FFF complètes. Charge J-4 à J+1. 7 écoles tactiques.',
-                details: [
-                  '🎯 Génération adapté à TON effectif',
-                  '📊 Gestion de la charge physique',
-                  '🏆 7 écoles tactiques (FR, ES, DE, NL, BR, AR, IT)',
-                  '💾 Historique des 50 meilleures séances',
-                  '📱 Intégration complète',
-                ]
+                n: '1',
+                titre: 'Décris ta séance',
+                desc: 'Thème, catégorie, effectif, durée, charge du jour. 5 choix, 10 secondes.',
+                icon: '🎛',
               },
               {
-                icon: '🎬',
-                title: 'Analyser Vidéos',
-                desc: 'Gemini Vision : forces, faiblesses, axes progression.',
-                details: [
-                  '🤖 Vision IA pour tactique',
-                  '🎬 Analyse de formation détaillée',
-                  '📹 Support vidéo match/entraînement',
-                  '💡 Recommandations personnalisées',
-                  '🔄 Illimité sur Pro',
-                ]
+                n: '2',
+                titre: 'ProSéance construit',
+                desc: 'Mise en train → jeu → situation → match. Chaque fiche avec son plan illustré.',
+                icon: '🧠',
               },
               {
-                icon: '📅',
-                title: 'Piloter la Saison',
-                desc: 'Programmation auto. Charges adaptées. Multi-équipes.',
-                details: [
-                  '🗓️ Calendrier saison automatique',
-                  '⚽ Adaptation J-4 à J+1 des matchs',
-                  '👥 Gestion multi-équipes (RT)',
-                  '📊 Dashboard temps réel',
-                  '📋 Programmation matchs/entraînements',
-                ]
+                n: '3',
+                titre: 'Coache, c’est prêt',
+                desc: 'Sur ton téléphone (même hors-ligne) ou imprimée en PDF. Partage-la à ton staff.',
+                icon: '📲',
               },
-            ].map((feat, idx) => (
-              <div
-                key={idx}
-                className="group relative p-6 md:p-8 rounded-lg border border-[#141E1A] bg-[#141E1A] hover:border-[#39FF14] hover:bg-[rgba(57,255,20,0.05)] transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(57,255,20,0.3)] animate-fade-in-up"
-                style={{ animationDelay: `${idx * 100}ms` }}
-              >
-                <div className="text-4xl md:text-5xl mb-4 transition-transform duration-300 group-hover:scale-110">{feat.icon}</div>
-                <h3 className="text-lg md:text-xl font-bold text-[#F3F4F6] mb-2 group-hover:text-[#39FF14] transition-colors">{feat.title}</h3>
-                <p className="text-xs md:text-sm text-[#9CA3AF] leading-relaxed">{feat.desc}</p>
-                <div className="mt-4 md:mt-6 flex items-center gap-2 text-[#39FF14] font-bold text-xs md:text-sm group-hover:translate-x-2 transition-transform">
-                  Explorer <span>→</span>
-                </div>
-
-                {/* Hover Details */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                  <div className="absolute inset-0 p-6 md:p-8 rounded-lg bg-[#0A0F0D]/95 backdrop-blur-sm border border-[#39FF14] flex flex-col justify-start">
-                    <p className="text-[#39FF14] font-bold text-sm mb-3">Inclus:</p>
-                    <ul className="space-y-2">
-                      {feat.details.map((detail, didx) => (
-                        <li key={didx} className="text-xs text-[#9CA3AF] flex items-start gap-2">
-                          <span className="text-[#39FF14] flex-shrink-0 mt-0.5">{detail.split(' ')[0]}</span>
-                          <span>{detail.substring(2)}</span>
-                        </li>
-                      ))}
-                    </ul>
+            ].map((s, i) => (
+              <Reveal key={i} delay={i * 150}>
+                <div className="relative rounded-2xl border border-[rgba(57,255,20,0.15)] bg-[#141E1A] p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-[#39FF14] hover:shadow-[0_0_30px_rgba(57,255,20,0.2)]">
+                  <div className="mx-auto -mt-12 mb-4 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#39FF14] bg-[#0A0F0D] text-2xl shadow-[0_0_20px_rgba(57,255,20,0.4)]">
+                    {s.icon}
                   </div>
+                  <p className="text-xs font-black uppercase tracking-widest text-[#39FF14]">Étape {s.n}</p>
+                  <h3 className="mt-1 text-xl font-bold text-[#F3F4F6]">{s.titre}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-[#9CA3AF]">{s.desc}</p>
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </section>
 
-        {/* Roles Section */}
-        <section id="roles" className="max-w-7xl mx-auto px-4 md:px-6 py-12 md:py-24 space-y-8 md:space-y-12 animate-fade-in-up">
-          <div className="text-center space-y-3 md:space-y-4 animate-fade-in-up px-2">
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tighter text-[#F3F4F6]">
-              Deux chemins. Une vision : <span className="text-[#39FF14]">gagner du temps</span>
-            </h2>
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-6 md:gap-12">
-            {/* Coach */}
-            <div className="space-y-4 md:space-y-6 p-6 md:p-8 rounded-lg border border-[#141E1A] bg-[#141E1A] hover:border-[#39FF14] transition-all duration-300 hover:shadow-[0_0_30px_rgba(57,255,20,0.2)] animate-fade-in-up">
-              <div>
-                <div className="text-5xl md:text-6xl mb-3 md:mb-4">🎯</div>
-                <h3 className="text-2xl md:text-3xl font-bold text-[#F3F4F6] mb-2">Entraîneur Principal</h3>
-                <p className="text-xs md:text-base text-[#9CA3AF]">Gagne 2h/semaine. Focus équipe.</p>
-              </div>
-              <ul className="space-y-2 md:space-y-3">
-                {[
-                  'Séance générée en 3s adaptée à TON effectif',
-                  'Upload vidéo → Analyse IA immédiate',
-                  'Historique : vois tes 50 meilleures séances',
-                  'Charge du jour : adaptation physique auto',
-                ].map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-2 md:gap-3 animate-fade-in-up text-xs md:text-sm" style={{ animationDelay: `${idx * 50}ms` }}>
-                    <span className="text-[#39FF14] text-lg md:text-xl flex-shrink-0">✓</span>
-                    <span className="text-[#9CA3AF]">{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="group relative block text-center mt-4 md:mt-6 px-6 py-2 md:py-3 bg-[#39FF14] text-[#0A0F0D] font-bold rounded-lg hover:shadow-[0_0_30px_rgba(57,255,20,0.4)] transition-all uppercase tracking-wide hover:scale-105 w-full text-xs md:text-sm"
-              >
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-30 rounded-lg bg-white transition-opacity duration-300" />
-                <span className="relative z-10">Essayer Maintenant</span>
-              </button>
+        {/* ── Essaie toi-même ── */}
+        <section className="mx-auto max-w-7xl px-4 py-12 md:px-6 md:py-20">
+          <Reveal>
+            <div className="mb-10 space-y-3 text-center">
+              <h2 className="text-3xl font-black tracking-tighter md:text-4xl">
+                À toi de jouer : <span className="text-[#39FF14]">génère une vraie séance</span>
+              </h2>
+              <p className="mx-auto max-w-2xl text-sm text-[#9CA3AF] md:text-base">
+                Pas une maquette : le vrai moteur ProSéance, dans ton navigateur.
+              </p>
             </div>
+          </Reveal>
+          <Reveal delay={150}>
+            <MiniGeneratorDemo />
+          </Reveal>
+        </section>
 
-            {/* RT */}
-            <div className="space-y-4 md:space-y-6 p-6 md:p-8 rounded-lg border border-[#39FF14] bg-[rgba(57,255,20,0.05)] hover:shadow-[0_0_40px_rgba(57,255,20,0.3)] transition-all duration-300 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-              <div>
-                <div className="text-5xl md:text-6xl mb-3 md:mb-4">📋</div>
-                <h3 className="text-2xl md:text-3xl font-bold text-[#F3F4F6] mb-2">Responsable Technique</h3>
-                <p className="text-xs md:text-base text-[#9CA3AF]">Pilote la stratégie. Multi-équipes.</p>
-              </div>
-              <ul className="space-y-2 md:space-y-3">
-                {[
-                  'Calendrier saison : charge auto J-4 à J+1',
-                  'Génère pour chaque entraîneur, une fois',
-                  'Analyses vidéo illimitées : tous matchs',
-                  'Rapports hebdo : points forts/axes équipes',
-                ].map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-2 md:gap-3 animate-fade-in-up text-xs md:text-sm" style={{ animationDelay: `${idx * 50}ms` }}>
-                    <span className="text-[#39FF14] text-lg md:text-xl flex-shrink-0">✓</span>
-                    <span className="text-[#9CA3AF]">{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="w-full mt-4 md:mt-6 px-6 py-2 md:py-3 border-2 border-[#39FF14] text-[#39FF14] font-bold rounded-lg hover:bg-[rgba(57,255,20,0.1)] transition-all uppercase tracking-wide hover:scale-105 text-xs md:text-sm"
-              >
-                Voir Tarif RT →
-              </button>
+        {/* ── Capacités ── */}
+        <section id="features" className="mx-auto max-w-7xl space-y-10 px-4 py-12 md:px-6 md:py-24">
+          <Reveal>
+            <div className="space-y-3 text-center">
+              <h2 className="text-3xl font-black tracking-tighter md:text-5xl">
+                <span className="text-[#F3F4F6]">Bien plus qu&apos;un</span>{' '}
+                <span className="anim-text-shine">générateur</span>
+              </h2>
             </div>
+          </Reveal>
+
+          <div className="grid gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3">
+            {[
+              {
+                icon: '📐',
+                title: 'Séances FFF illustrées',
+                desc: 'Méthodologie FFF : mise en train, jeu, situation, match. Chaque exercice avec son plan.',
+                details: [
+                  'Plan illustré : joueurs, plots, ballons, buts, zones',
+                  'Fiches : but, consignes, variantes, critères de réussite',
+                  'Toutes catégories : U6-U7 → Seniors',
+                  'Impression / export PDF de la fiche',
+                  'Historique de vos 50 dernières séances',
+                ],
+              },
+              {
+                icon: '🎤',
+                title: 'Causerie d’avant-match IA',
+                desc: 'Ton discours de vestiaire, écrit pour toi : adversaire, enjeu, état du groupe.',
+                details: [
+                  'Accroche qui capte le vestiaire',
+                  '3 messages clés mémorisables',
+                  'Consignes par ligne : défense, milieu, attaque',
+                  'Phrase finale qui donne des frissons',
+                  'Pense-bête pour la mi-temps',
+                ],
+              },
+              {
+                icon: '📈',
+                title: 'Plans de cycle (périodisation)',
+                desc: 'Décris ton objectif, choisis la durée : ton cycle est construit semaine par semaine.',
+                details: [
+                  'Progression logique : du simple au match',
+                  'Thème, charge et points clés par semaine',
+                  'Chaque semaine → séance illustrée en 1 clic',
+                  'Alternance intelligente des charges',
+                  'De 2 à 12 semaines',
+                ],
+              },
+              {
+                icon: '🔍',
+                title: 'Débrief post-match IA',
+                desc: 'Score + tes observations → analyse structurée et plan d’entraînement de la semaine.',
+                details: [
+                  'Points forts à valoriser au groupe',
+                  'Axes de progression formulés positivement',
+                  'Thème de la semaine recommandé',
+                  'Du match à la séance en 1 clic',
+                  'Constructif, jamais accablant',
+                ],
+              },
+              {
+                icon: '📚',
+                title: 'Bibliothèque d’exercices',
+                desc: 'Toutes les fiches FFF illustrées, filtrables par thème et procédé — même hors-ligne.',
+                details: [
+                  '10 thèmes, tous les procédés FFF',
+                  'Schéma tactique sur chaque fiche',
+                  'Adaptée à ta catégorie et ton effectif',
+                  'Consultable sans connexion (PWA)',
+                  'Consignes, variantes, critères inclus',
+                ],
+              },
+              {
+                icon: '🥅',
+                title: 'Coach de Tir (vision IA)',
+                desc: 'Filme une frappe : télémétrie, biomécanique du geste et corrections.',
+                details: [
+                  'Vitesse et distance estimées de la frappe',
+                  'But / raté / arrêté détecté automatiquement',
+                  '6 critères du geste notés /10',
+                  'Corrections + exercices personnalisés',
+                  'Du tir analysé à la séance Finition en 1 clic',
+                ],
+              },
+              {
+                icon: '📅',
+                title: 'Piloter la saison',
+                desc: 'Programmation, présences, analyse vidéo, multi-équipes.',
+                details: [
+                  'Calendrier matchs & entraînements',
+                  'Analyse vidéo IA (Gemini Vision)',
+                  'Appel par reconnaissance photo',
+                  'Gestion multi-équipes (RT)',
+                  'Dashboards coach & RT',
+                ],
+              },
+            ].map((feat, idx) => (
+              <Reveal key={idx} delay={idx * 120}>
+                <div className="group relative h-full rounded-2xl border border-[#141E1A] bg-[#141E1A] p-6 transition-all duration-300 hover:scale-[1.03] hover:border-[#39FF14] hover:bg-[rgba(57,255,20,0.05)] hover:shadow-[0_0_30px_rgba(57,255,20,0.3)] md:p-8">
+                  <div className="mb-4 text-4xl transition-transform duration-300 group-hover:scale-110 md:text-5xl">
+                    {feat.icon}
+                  </div>
+                  <h3 className="mb-2 text-lg font-bold text-[#F3F4F6] transition-colors group-hover:text-[#39FF14] md:text-xl">
+                    {feat.title}
+                  </h3>
+                  <p className="text-xs leading-relaxed text-[#9CA3AF] md:text-sm">{feat.desc}</p>
+                  <ul className="mt-4 space-y-1.5">
+                    {feat.details.map((d, di) => (
+                      <li key={di} className="flex items-start gap-2 text-xs text-[#9CA3AF]">
+                        <span className="mt-0.5 flex-shrink-0 text-[#39FF14]">✓</span>
+                        {d}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Reveal>
+            ))}
           </div>
         </section>
 
-        {/* Pricing Section */}
-        <section id="pricing" className="max-w-7xl mx-auto px-4 md:px-6 py-12 md:py-24 space-y-8 md:space-y-12 animate-fade-in-up">
-          <div className="text-center space-y-3 md:space-y-4 animate-fade-in-up px-2">
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tighter text-[#F3F4F6]">
-              Tarifs <span className="text-[#39FF14]">Transparent</span>
-            </h2>
-            <p className="text-xs md:text-base text-[#9CA3AF]">
-              7 jours gratuits. Pas de CB. Annulable 1 clic.
-            </p>
-          </div>
+        {/* ── Tarifs ── */}
+        <section id="pricing" className="mx-auto max-w-7xl space-y-10 px-4 py-12 md:px-6 md:py-24">
+          <Reveal>
+            <div className="space-y-3 text-center">
+              <h2 className="text-3xl font-black tracking-tighter md:text-4xl">
+                Tarifs <span className="text-[#39FF14]">transparents</span>
+              </h2>
+              <p className="text-xs text-[#9CA3AF] md:text-base">7 jours gratuits. Pas de CB. Annulable en 1 clic.</p>
+            </div>
+          </Reveal>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
+          <div className="grid gap-4 sm:grid-cols-2 md:gap-8 lg:grid-cols-3">
             {[
               {
                 type: 'trial' as const,
@@ -381,14 +424,14 @@ export default function ProSéanceLanding() {
                 icon: '🚀',
                 description: 'Découvre la puissance de ProSéance',
                 features: [
-                  '⚡ Génération séance en 3s',
-                  '🎬 2 analyses vidéo',
-                  '👥 1 équipe',
-                  '📋 10 séances/mois',
-                  '🔍 Accès complet à tous les outils',
-                  '❌ Pas de CB requise',
+                  'Génération de séances illustrées',
+                  'Coach IA : causerie, cycle, débrief',
+                  'Bibliothèque d’exercices complète',
+                  '2 analyses vidéo',
+                  '10 séances / mois · 1 équipe',
+                  'Pas de CB requise',
                 ],
-                cta: 'Commencer Gratuitement',
+                cta: 'Commencer gratuitement',
               },
               {
                 type: 'coach_pro' as const,
@@ -398,14 +441,14 @@ export default function ProSéanceLanding() {
                 icon: '🎯',
                 description: 'Pour un entraîneur principal',
                 features: [
-                  '⚡ Génération illimitée',
-                  '🎬 5 analyses vidéo/mois',
-                  '👥 1 équipe de A-Z',
-                  '📋 Historique 50 séances',
-                  '📅 Programmation saison',
-                  '✅ Présence automatique',
-                  '📊 Dashboard entraîneur',
-                  '💬 Support prioritaire',
+                  'Génération illimitée',
+                  'Coach IA illimité : causeries, cycles, débriefs',
+                  'Bibliothèque d’exercices complète',
+                  '5 analyses vidéo / mois',
+                  '1 équipe de A à Z · historique 50 séances',
+                  'Programmation saison',
+                  'Présence automatique',
+                  'Dashboard entraîneur · support prioritaire',
                 ],
                 cta: 'Passer à Coach Pro',
                 highlight: true,
@@ -418,105 +461,105 @@ export default function ProSéanceLanding() {
                 icon: '📊',
                 description: 'Pour un responsable technique',
                 features: [
-                  '⚡ Génération illimitée',
-                  '🎬 Analyses illimitées',
-                  '👥 Multi-équipes (10+)',
-                  '📋 Génération collective',
-                  '📅 Programmation saison auto',
-                  '✅ Présence multi-groupes',
-                  '📊 Dashboard RT temps réel',
-                  '📈 Rapports hebdo détaillés',
-                  '🔐 Accès administrateur',
-                  '💬 Support dédié',
+                  'Tout Coach Pro, en illimité',
+                  'Analyses vidéo illimitées',
+                  'Multi-équipes (10+)',
+                  'Plans de cycle pour tout le club',
+                  'Programmation saison auto',
+                  'Présence multi-groupes',
+                  'Dashboard RT temps réel',
+                  'Support dédié',
                 ],
                 cta: 'Passer à RT Manager',
               },
             ].map((plan, idx) => (
-              <div
-                key={idx}
-                className={`relative p-5 md:p-8 rounded-lg border-2 transition-all duration-300 hover:scale-105 animate-fade-in-up flex flex-col ${
-                  plan.highlight
-                    ? 'border-[#39FF14] bg-[rgba(57,255,20,0.1)] lg:scale-105 hover:shadow-[0_0_50px_rgba(57,255,20,0.5)]'
-                    : 'border-[#141E1A] bg-[#141E1A] hover:border-[#39FF14] hover:shadow-[0_0_30px_rgba(57,255,20,0.3)]'
-                }`}
-                style={{ animationDelay: `${idx * 100}ms` }}
-              >
-                {plan.highlight && (
-                  <div className="absolute -top-3 md:-top-4 left-1/2 -translate-x-1/2 px-3 md:px-4 py-1 bg-[#39FF14] text-[#0A0F0D] text-xs font-black rounded-full uppercase tracking-wider">
-                    ⭐ Plus Populaire
-                  </div>
-                )}
-
-                <div className="text-3xl md:text-4xl mb-3">{plan.icon}</div>
-                <h3 className="text-xl md:text-2xl font-bold text-[#F3F4F6] mb-1">{plan.name}</h3>
-                <p className="text-xs md:text-sm text-[#9CA3AF] mb-4 h-10 flex items-center">{plan.description}</p>
-
-                <div className="mb-6 pb-6 border-b border-[rgba(57,255,20,0.2)]">
-                  <span className="text-4xl md:text-5xl font-black text-[#39FF14]">{plan.price}</span>
-                  <span className="text-[#9CA3AF] text-sm md:text-base ml-1">{plan.duration}</span>
-                  {plan.price !== 'Gratuit' && <p className="text-xs text-[#9CA3AF] mt-2">Annulable 1 clic</p>}
-                </div>
-
-                <ul className="space-y-2 md:space-y-3 mb-6 md:mb-8 flex-grow">
-                  {plan.features.map((f, fidx) => (
-                    <li key={fidx} className="flex items-start gap-2 text-[#9CA3AF] text-xs md:text-sm">
-                      <span className="text-[#39FF14] flex-shrink-0 mt-0.5">{f.split(' ')[0]}</span>
-                      <span>{f.substring(2)}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <button
-                  onClick={() => handlePricingClick(plan.type)}
-                  disabled={isCheckingOut && plan.type !== 'trial'}
-                  className={`w-full py-3 md:py-4 px-4 rounded-lg font-bold uppercase tracking-wide transition-all group relative hover:scale-105 text-xs md:text-sm disabled:opacity-50 disabled:hover:scale-100 ${
+              <Reveal key={idx} delay={idx * 120} className="h-full">
+                <div
+                  className={`relative flex h-full flex-col rounded-2xl border-2 p-5 transition-all duration-300 hover:scale-[1.03] md:p-8 ${
                     plan.highlight
-                      ? 'bg-[#39FF14] text-[#0A0F0D] hover:shadow-[0_0_40px_rgba(57,255,20,0.6)]'
-                      : 'border-2 border-[#39FF14] text-[#39FF14] hover:bg-[rgba(57,255,20,0.1)]'
+                      ? 'border-[#39FF14] bg-[rgba(57,255,20,0.1)] hover:shadow-[0_0_50px_rgba(57,255,20,0.5)] lg:scale-105'
+                      : 'border-[#141E1A] bg-[#141E1A] hover:border-[#39FF14] hover:shadow-[0_0_30px_rgba(57,255,20,0.3)]'
                   }`}
                 >
                   {plan.highlight && (
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-30 rounded-lg bg-white transition-opacity duration-300" />
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-[#39FF14] px-4 py-1 text-xs font-black uppercase tracking-wider text-[#0A0F0D]">
+                      ⭐ Plus populaire
+                    </div>
                   )}
-                  <span className="relative z-10">
-                    {isCheckingOut && plan.type !== 'trial' ? 'Redirection...' : plan.cta}
-                  </span>
-                </button>
-              </div>
+
+                  <div className="mb-3 text-3xl md:text-4xl">{plan.icon}</div>
+                  <h3 className="mb-1 text-xl font-bold text-[#F3F4F6] md:text-2xl">{plan.name}</h3>
+                  <p className="mb-4 flex h-10 items-center text-xs text-[#9CA3AF] md:text-sm">{plan.description}</p>
+
+                  <div className="mb-6 border-b border-[rgba(57,255,20,0.2)] pb-6">
+                    <span className="text-4xl font-black text-[#39FF14] md:text-5xl">{plan.price}</span>
+                    <span className="ml-1 text-sm text-[#9CA3AF] md:text-base">{plan.duration}</span>
+                    {plan.price !== 'Gratuit' && <p className="mt-2 text-xs text-[#9CA3AF]">Annulable en 1 clic</p>}
+                  </div>
+
+                  <ul className="mb-6 flex-grow space-y-2 md:mb-8 md:space-y-3">
+                    {plan.features.map((f, fidx) => (
+                      <li key={fidx} className="flex items-start gap-2 text-xs text-[#9CA3AF] md:text-sm">
+                        <span className="mt-0.5 flex-shrink-0 text-[#39FF14]">✓</span>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    onClick={() => handlePricingClick(plan.type)}
+                    disabled={isCheckingOut && plan.type !== 'trial'}
+                    className={`group relative w-full rounded-lg px-4 py-3 text-xs font-bold uppercase tracking-wide transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 md:py-4 md:text-sm ${
+                      plan.highlight
+                        ? 'bg-[#39FF14] text-[#0A0F0D] hover:shadow-[0_0_40px_rgba(57,255,20,0.6)]'
+                        : 'border-2 border-[#39FF14] text-[#39FF14] hover:bg-[rgba(57,255,20,0.1)]'
+                    }`}
+                  >
+                    {plan.highlight && (
+                      <div className="absolute inset-0 rounded-lg bg-white opacity-0 transition-opacity duration-300 group-hover:opacity-30" />
+                    )}
+                    <span className="relative z-10">
+                      {isCheckingOut && plan.type !== 'trial' ? 'Redirection...' : plan.cta}
+                    </span>
+                  </button>
+                </div>
+              </Reveal>
             ))}
           </div>
         </section>
 
-        {/* Footer CTA */}
-        <section className="border-t border-[rgba(57,255,20,0.1)] max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-16">
-          <div className="text-center space-y-4 md:space-y-6 animate-fade-in-up px-2">
-            <h2 className="text-2xl md:text-3xl font-black italic tracking-tighter text-[#F3F4F6]">
-              Prêt à <span className="text-[#39FF14]">dominer ton calendrier</span> ?
-            </h2>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="group relative inline-block px-6 md:px-8 py-3 md:py-4 bg-[#39FF14] text-[#0A0F0D] font-bold rounded-lg hover:shadow-[0_0_40px_rgba(57,255,20,0.6)] transition-all uppercase tracking-wide hover:scale-105 animate-pop text-xs md:text-base"
-            >
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-30 rounded-lg bg-white transition-opacity duration-300" />
-              <span className="relative z-10 whitespace-nowrap">Génère ta première séance (gratuit)</span>
-            </button>
-            <p className="text-[#9CA3AF] text-xs md:text-sm px-2">Aucune CB. Démo fonctionnelle. 7 jours complets.</p>
-          </div>
+        {/* ── CTA final ── */}
+        <section className="mx-auto max-w-7xl border-t border-[rgba(57,255,20,0.1)] px-4 py-12 md:px-6 md:py-20">
+          <Reveal>
+            <div className="space-y-5 text-center">
+              <h2 className="text-2xl font-black tracking-tighter md:text-4xl">
+                Ta prochaine séance est <span className="anim-text-shine">déjà prête</span>
+              </h2>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="group relative inline-block rounded-lg bg-[#39FF14] px-8 py-4 text-sm font-bold uppercase tracking-wide text-[#0A0F0D] transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(57,255,20,0.6)] md:text-base"
+              >
+                <div className="absolute inset-0 rounded-lg bg-white opacity-0 transition-opacity duration-300 group-hover:opacity-30" />
+                <span className="relative z-10 whitespace-nowrap">Génère ta première séance (gratuit)</span>
+              </button>
+              <p className="text-xs text-[#9CA3AF] md:text-sm">Aucune CB. Démo fonctionnelle. 7 jours complets.</p>
+            </div>
+          </Reveal>
         </section>
 
-        {/* Footer */}
-        <footer className="border-t border-[rgba(57,255,20,0.1)] mt-8 md:mt-16 py-8 md:py-12">
-          <div className="max-w-7xl mx-auto px-4 md:px-6 text-center text-[#9CA3AF] text-xs md:text-sm space-y-3 md:space-y-4">
+        {/* ── Footer ── */}
+        <footer className="border-t border-[rgba(57,255,20,0.1)] py-8 md:py-12">
+          <div className="mx-auto max-w-7xl space-y-3 px-4 text-center text-xs text-[#9CA3AF] md:px-6 md:text-sm">
             <p className="font-bold text-[#F3F4F6]">© 2026 ProSéance</p>
-            <p>Assistant IA des entraîneurs et clubs de football • Méthodologie FFF</p>
+            <p>L&apos;assistant des entraîneurs et clubs de football • Méthodologie FFF • PWA installable</p>
+            <p className="space-x-4">
+              <Link href="/login" className="transition-colors hover:text-[#39FF14]">Connexion</Link>
+              <Link href="/admin/leads" className="transition-colors hover:text-[#39FF14]">Admin</Link>
+            </p>
           </div>
         </footer>
 
-        {/* Lead Modal */}
-        <LeadModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-        />
+        <LeadModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       </div>
     </div>
   );

@@ -676,18 +676,21 @@ function CoachDashboardContent() {
           <h2 className="text-xl md:text-2xl font-bold text-[#F3F4F6] mb-6">⚡ Fonctionnalités ProSéance</h2>
           <div className="grid md:grid-cols-2 gap-5">
             {[
-              { icon: '🎬', title: 'Analyse Vidéo', desc: "Analysez vos matchs automatiquement avec l'IA" },
-              { icon: '⚡', title: 'Génération Séances', desc: 'Créez des entraînements en 3 secondes' },
-              { icon: '📊', title: 'Suivi Joueurs', desc: 'Suivez la performance de chaque joueur' },
-              { icon: '📅', title: 'Programmation', desc: 'Programmez votre saison automatiquement' },
+              { icon: '⚡', title: 'Génération Séances', desc: 'Séances FFF illustrées en quelques secondes', href: '/session' },
+              { icon: '📚', title: "Bibliothèque d'exercices", desc: 'Fiches illustrées par thème, même hors-ligne', href: '/exercices' },
+              { icon: '🎤', title: 'Causerie IA', desc: "Ton discours d'avant-match, écrit pour toi", href: '/coach-ia' },
+              { icon: '📈', title: 'Plan de cycle', desc: 'Périodisation sur plusieurs semaines, reliée aux séances', href: '/coach-ia' },
+              { icon: '🔍', title: 'Débrief post-match', desc: 'Analyse du match + thème recommandé pour la semaine', href: '/coach-ia' },
+              { icon: '🥅', title: 'Coach de Tir', desc: 'Filme une frappe : vitesse, biomécanique du geste, corrections', href: '/video' },
+              { icon: '🎬', title: 'Analyse Vidéo', desc: "Analysez vos matchs automatiquement avec l'IA", href: '/video' },
             ].map(f => (
-              <div key={f.title} className="flex gap-4">
+              <a key={f.title} href={f.href} className="flex gap-4 rounded-xl p-2 -m-2 transition-colors hover:bg-[rgba(57,255,20,0.05)]">
                 <div className="text-3xl flex-shrink-0">{f.icon}</div>
                 <div>
                   <h3 className="font-bold text-[#39FF14] mb-1">{f.title}</h3>
                   <p className="text-[#9CA3AF] text-sm">{f.desc}</p>
                 </div>
-              </div>
+              </a>
             ))}
           </div>
         </div>

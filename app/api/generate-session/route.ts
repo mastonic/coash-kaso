@@ -1,70 +1,143 @@
-import { generateSession as genSession } from '@/lib/gemini';
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { getLimit } from '@/lib/plans';
+import { generateSeance } from '@/lib/seance/generator';
+import {
+  CATEGORIES,
+  CHARGES,
+  DOMAINES,
+  ECOLES,
+  THEMES,
+  type Categorie,
+  type Charge,
+  type EcoleDeJeu,
+  type SeanceParams,
+  type SousThemeId,
+} from '@/lib/seance/schema';
+
+export const maxDuration = 120;
+
+/** Mappe l'ancien format (theme/load/school/playerCount) vers les paramètres v2 */
+function parseParams(body: Record<string, unknown>): SeanceParams | null {
+  const allSousThemeIds = new Set<string>([
+    ...THEMES.map((t) => t.id),
+    ...DOMAINES.flatMap((d) => d.sousThemes.map((s) => s.id)),
+  ]);
+
+  const legacyThemeMap: Record<string, SousThemeId> = {
+    centre: 'ailes',
+    controle: 'technique',
+    phases: 'finition',
+    '1v1': 'duels',
+  };
+
+  const themeRaw = String(body.theme ?? '');
+  const theme = allSousThemeIds.has(themeRaw)
+    ? (themeRaw as SousThemeId)
+    : legacyThemeMap[themeRaw];
+  if (!theme) return null;
+
+  const categorie = CATEGORIES.includes(body.categorie as Categorie)
+    ? (body.categorie as Categorie)
+    : 'Seniors';
+
+  const chargeRaw = (body.charge ?? body.load) as Charge;
+  const charge = CHARGES.includes(chargeRaw) ? chargeRaw : 'Modérée';
+
+  const effectifRaw = Number(body.effectif ?? body.playerCount);
+  if (!Number.isFinite(effectifRaw)) return null;
+  const effectif = Math.min(30, Math.max(4, Math.round(effectifRaw)));
+
+  const dureeRaw = Number(body.duree ?? 90);
+  const duree = Number.isFinite(dureeRaw)
+    ? Math.min(150, Math.max(30, Math.round(dureeRaw / 5) * 5))
+    : 90;
+
+  const ecoleRaw = body.ecole as string | undefined;
+  const ecole = ecoleRaw && ECOLES.some((e) => e.id === ecoleRaw)
+    ? (ecoleRaw as EcoleDeJeu)
+    : undefined;
+
+  return { theme, categorie, effectif, duree, charge, ecole };
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const { theme, load, school, playerCount, email } = await request.json();
+    const body = (await request.json()) as Record<string, unknown>;
+    const params = parseParams(body);
 
-    if (!theme || !load || !school || !playerCount) {
+    if (!params) {
       return NextResponse.json(
-        { success: false, error: 'Missing required parameters' },
+        { success: false, error: 'Paramètres invalides ou manquants (theme, effectif requis)' },
         { status: 400 }
       );
     }
 
-    // Check usage limit if email provided
+    const email = typeof body.email === 'string' ? body.email.toLowerCase() : null;
+
+    // Quota mensuel (si l'utilisateur est identifié et Firestore configuré)
     if (email && adminDb) {
-      const userDoc = await adminDb.collection('users_access').doc(email.toLowerCase()).get();
-
-      if (userDoc.exists) {
-        const userData = userDoc.data();
-        const plan = userData?.plan || 'trial';
-        const usage = userData?.usage || {};
-
-        // Check monthly session limit
-        const sessionLimit = getLimit(plan, 'sessionsPerMonth');
-        if (sessionLimit !== -1 && usage.sessionsGeneratedThisMonth >= sessionLimit) {
-          return NextResponse.json(
-            { success: false, error: 'Session generation limit reached for this month' },
-            { status: 403 }
-          );
+      try {
+        const userRef = adminDb.collection('users_access').doc(email);
+        const userDoc = await userRef.get();
+        if (userDoc.exists) {
+          const userData = userDoc.data()!;
+          const plan = userData.plan || 'trial';
+          const limit = getLimit(plan, 'sessionsPerMonth');
+          if (limit !== -1) {
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            const trackedMonth = userData.usage?.currentMonth;
+            const used = trackedMonth === currentMonth
+              ? (userData.usage?.sessionsGeneratedThisMonth || 0)
+              : 0;
+            if (used >= limit) {
+              return NextResponse.json(
+                {
+                  success: false,
+                  error: 'Limite mensuelle de séances atteinte',
+                  hint: 'Passez au plan Coach Pro pour générer des séances en illimité.',
+                },
+                { status: 403 }
+              );
+            }
+          }
         }
+      } catch (e) {
+        console.error('Vérification quota impossible :', e);
       }
     }
 
-    // Add timeout of 120 seconds (Vercel max is 300s)
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Generation timeout - API took too long')), 120000)
-    );
+    const exercicesRecents = Array.isArray(body.exercicesRecents)
+      ? (body.exercicesRecents as string[]).filter((s) => typeof s === 'string')
+      : undefined;
 
-    const sessionPromise = genSession(theme, load, school, playerCount);
-    const sessionData = await Promise.race([sessionPromise, timeoutPromise]);
+    const { seance, source } = await generateSeance(params, exercicesRecents);
 
-    // Increment session counter if email provided
     if (email && adminDb) {
-      const userRef = adminDb.collection('users_access').doc(email.toLowerCase());
-      const userDoc = await userRef.get();
-
-      if (userDoc.exists) {
-        const usage = userDoc.data()?.usage || {};
-        await userRef.update({
-          'usage.sessionsGeneratedThisMonth': (usage.sessionsGeneratedThisMonth || 0) + 1,
-        });
+      try {
+        const userRef = adminDb.collection('users_access').doc(email);
+        const userDoc = await userRef.get();
+        if (userDoc.exists) {
+          const currentMonth = new Date().toISOString().slice(0, 7);
+          const trackedMonth = userDoc.data()?.usage?.currentMonth;
+          const used = trackedMonth === currentMonth
+            ? (userDoc.data()?.usage?.sessionsGeneratedThisMonth || 0)
+            : 0;
+          await userRef.update({
+            'usage.sessionsGeneratedThisMonth': used + 1,
+            'usage.currentMonth': currentMonth,
+          });
+        }
+      } catch (e) {
+        console.error('Incrément du compteur impossible :', e);
       }
     }
 
-    return NextResponse.json({ success: true, data: sessionData });
+    return NextResponse.json({ success: true, data: seance, source });
   } catch (error) {
-    console.error('Session generation error:', error);
-    const message = error instanceof Error ? error.message : 'Generation failed';
+    console.error('Erreur génération de séance :', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: message,
-        hint: message.includes('timeout') ? 'La génération a pris trop de temps. Essayez à nouveau.' : undefined
-      },
+      { success: false, error: 'La génération a échoué, réessayez.' },
       { status: 500 }
     );
   }

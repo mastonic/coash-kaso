@@ -5,48 +5,43 @@ export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json();
 
-    if (!email || typeof email !== 'string') {
-      return NextResponse.json(
-        { error: 'Email requis' },
-        { status: 400 }
-      );
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return NextResponse.json({ error: 'Email requis' }, { status: 400 });
     }
 
-    const admin = await import('firebase-admin');
+    const normalizedEmail = email.toLowerCase().trim();
 
-    if (!admin.apps.length) {
-      const serviceAccount = {
-        project_id: process.env.FIREBASE_PROJECT_ID,
-        private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        client_email: process.env.FIREBASE_CLIENT_EMAIL,
-      };
-
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount as any),
+    // Mode démo : sans Firebase configuré, l'accès est accordé en essai.
+    // Permet d'utiliser l'app (génération, historique local) sans backend.
+    if (!adminDb) {
+      return NextResponse.json({
+        success: true,
+        hasAccess: true,
+        plan: 'trial',
+        status: 'demo',
+        usage: null,
+        email: normalizedEmail,
       });
     }
 
-    const db = admin.firestore();
-    const normalizedEmail = email.toLowerCase();
+    const userDoc = await adminDb
+      .collection('users_access')
+      .doc(normalizedEmail)
+      .get();
 
-    // Check if user has access
-    const userDoc = await db.collection('users_access').doc(normalizedEmail).get();
-
-    let userData = userDoc.data();
+    const userData = userDoc.data();
     let hasAccess = false;
 
     if (userData) {
-      // Check if trial has expired
+      // Expiration de la période d'essai
       if (userData.plan === 'trial' && userData.trialEndsAt) {
         const trialEndsAt = new Date(userData.trialEndsAt);
-        if (new Date() > trialEndsAt) {
+        if (new Date() > trialEndsAt && userData.status === 'active') {
           userData.status = 'expired';
-          // Persist expiration
-          if (adminDb) {
-            await adminDb.collection('users_access').doc(normalizedEmail).update({
-              status: 'expired',
-            });
-          }
+          await adminDb
+            .collection('users_access')
+            .doc(normalizedEmail)
+            .update({ status: 'expired' });
         }
       }
 
@@ -61,11 +56,10 @@ export async function POST(request: NextRequest) {
       usage: userData?.usage || null,
       email: normalizedEmail,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error checking access:', error);
-    return NextResponse.json(
-      { error: error.message || 'Erreur vérification accès' },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : 'Erreur vérification accès';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -3,11 +3,17 @@
 import { useState, useEffect } from 'react';
 import { SessionPlaybook } from '@/components/SessionPlaybook';
 import { LoadingShimmer } from '@/components/LoadingShimmer';
+import { FicheSeance } from '@/components/seance/FicheSeance';
 import Link from 'next/link';
 import type { SessionData } from '@/lib/gemini';
+import type { Seance } from '@/lib/seance/schema';
+
+function isSeanceV2(content: SessionData | Seance | null): content is Seance {
+  return !!content && (content as Seance).version === 2;
+}
 
 export default function SharePage({ params }: { params: Promise<{ id: string }> }) {
-  const [session, setSession] = useState<SessionData | null>(null);
+  const [session, setSession] = useState<SessionData | Seance | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [metadata, setMetadata] = useState<{
@@ -70,6 +76,39 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
     );
   }
 
+  // ── Séance v2 (fiche FFF) ──
+  if (isSeanceV2(session)) {
+    return (
+      <main className="min-h-screen bg-[#0A0F0D] animate-fade-in">
+        <div className="print:hidden">
+          <section className="mx-auto max-w-5xl px-4 py-8 md:px-6">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <h1 className="text-2xl font-black text-[#F3F4F6] md:text-3xl">Séance partagée</h1>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => window.print()}
+                  className="rounded-lg bg-[#39FF14] px-5 py-2.5 font-bold text-[#0A0F0D] transition-all hover:shadow-[0_0_30px_rgba(57,255,20,0.6)]"
+                >
+                  🖨 Imprimer / PDF
+                </button>
+                <Link
+                  href="/"
+                  className="rounded-lg border border-[rgba(57,255,20,0.4)] px-5 py-2.5 font-bold text-[#39FF14] transition-all hover:bg-[rgba(57,255,20,0.1)]"
+                >
+                  Découvrir ProSéance
+                </Link>
+              </div>
+            </div>
+            <FicheSeance seance={session} />
+          </section>
+        </div>
+        <div className="hidden bg-white p-6 print:block">
+          <FicheSeance seance={session} print />
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[#0A0F0D] animate-fade-in">
       <section className="max-w-4xl mx-auto px-6 py-12">
@@ -103,7 +142,7 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
         </div>
 
         <SessionPlaybook
-          data={session}
+          data={session as SessionData}
           theme={metadata.theme}
           load={metadata.load}
           school={metadata.school}

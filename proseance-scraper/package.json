@@ -1,0 +1,29 @@
+{
+  "name": "proseance-scraper",
+  "version": "1.0.0",
+  "description": "Scraper d'exercices de football pour ProSeance",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "scrape:all": "node src/index.js --country=ALL",
+    "scrape:fr": "node src/index.js --country=FR",
+    "scrape:en": "node src/index.js --country=EN",
+    "scrape:es": "node src/index.js --country=ES",
+    "scrape:de": "node src/index.js --country=DE",
+    "scrape:nl": "node src/index.js --country=NL",
+    "dry-run": "node src/index.js --dry-run --max=10"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cheerio": "^1.0.0",
+    "firebase-admin": "^12.7.0",
+    "p-limit": "^6.2.0",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "puppeteer": "^23.10.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
