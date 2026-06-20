@@ -397,24 +397,37 @@ function SessionContent() {
     // Sauvegarder les exercices utilisés pour l'anti-répétition
     sauvegarderExercices(phases.map((p) => p.titre));
 
-    // Historique local
+    const sessionId = `seance-${Date.now()}`;
+    const sessionRecord = {
+      id: sessionId,
+      version: 2,
+      theme: draft.params.theme,
+      categorie: draft.params.categorie,
+      effectif: draft.params.effectif,
+      duree: draft.params.duree,
+      charge: draft.params.charge,
+      ecole: draft.params.ecole,
+      date: new Date().toISOString(),
+      content: assembled,
+    };
+
+    // Historique local (fallback)
     try {
       const sessions = JSON.parse(localStorage.getItem('mastro_sessions') || '[]');
-      sessions.push({
-        id: `seance-${Date.now()}`,
-        version: 2,
-        theme: draft.params.theme,
-        categorie: draft.params.categorie,
-        effectif: draft.params.effectif,
-        duree: draft.params.duree,
-        charge: draft.params.charge,
-        ecole: draft.params.ecole,
-        date: new Date().toISOString(),
-        content: assembled,
-      });
+      sessions.push(sessionRecord);
       localStorage.setItem('mastro_sessions', JSON.stringify(sessions.slice(-50)));
     } catch {
       // ignore
+    }
+
+    // Persistance Firestore (best-effort, non bloquant)
+    const email = localStorage.getItem('mastro_user');
+    if (email) {
+      fetch('/api/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, session: sessionRecord }),
+      }).catch(() => {/* silencieux */});
     }
 
     setSeance(assembled);

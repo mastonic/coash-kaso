@@ -29,6 +29,28 @@ function isSeanceV2(content: SessionData | Seance | undefined): content is Seanc
   return !!content && (content as Seance).version === 2;
 }
 
+async function chargerSessionFirestore(id: string, email: string): Promise<HistorySession | null> {
+  try {
+    const res = await fetch(`/api/history/${id}?email=${encodeURIComponent(email)}`);
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.success ? (json.session as HistorySession) : null;
+  } catch {
+    return null;
+  }
+}
+
+function chargerSessionLocale(id: string): HistorySession | null {
+  try {
+    const stored = localStorage.getItem('mastro_sessions');
+    if (!stored) return null;
+    const sessions = JSON.parse(stored) as HistorySession[];
+    return sessions.find((s) => s.id === id) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function SessionDetailContent({ params }: { params: Promise<{ id: string }> }) {
   const [session, setSession] = useState<HistorySession | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,13 +61,21 @@ function SessionDetailContent({ params }: { params: Promise<{ id: string }> }) {
       setMounted(true);
       try {
         const { id } = await params;
-        const stored = localStorage.getItem('mastro_sessions');
-        if (stored) {
-          const sessions = JSON.parse(stored) as HistorySession[];
-          const found = sessions.find((s) => s.id === id);
-          if (found && found.content) {
-            setSession(found);
+        const email = localStorage.getItem('mastro_user');
+
+        if (email) {
+          const remote = await chargerSessionFirestore(id, email);
+          if (remote?.content) {
+            setSession(remote);
+            setLoading(false);
+            return;
           }
+        }
+
+        // Fallback localStorage
+        const local = chargerSessionLocale(id);
+        if (local?.content) {
+          setSession(local);
         }
       } catch (e) {
         console.error('Error loading session:', e);
@@ -63,8 +93,8 @@ function SessionDetailContent({ params }: { params: Promise<{ id: string }> }) {
     return (
       <main className="min-h-screen bg-[#0A0F0D]">
         <ToolsNav currentPage="history" />
-        <section className="max-w-4xl mx-auto px-6 py-12">
-          <p className="text-[#9CA3AF]">Chargement...</p>
+        <section className="max-w-4xl mx-auto px-6 py-12 flex justify-center">
+          <span className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-[#39FF14] border-t-transparent" />
         </section>
       </main>
     );
