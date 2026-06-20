@@ -164,11 +164,23 @@ export async function scrapEntrainementfoot(options = {}) {
       await sleep(DELAYS.betweenPages);
     }
 
+    // Construire une description à partir des métadonnées publiques si la fiche est payante
+    const theme = item.themeText || 'football';
+    const syntheticDescription =
+      detail.description && detail.description.length > 30
+        ? detail.description
+        : `Exercice de ${theme} — "${item.title}". ${item.durationText ? `Durée : ${item.durationText}.` : ''} ${item.playersText ? `Effectif : ${item.playersText}.` : ''}`.trim();
+
+    const objectives =
+      detail.objectives && detail.objectives.length > 0
+        ? detail.objectives
+        : [`Travail de ${theme}`];
+
     const ex = buildExercise(
       {
         title: item.title,
-        description: detail.description ?? '',
-        objectives: detail.objectives ?? [],
+        description: syntheticDescription,
+        objectives,
         instructions: detail.instructions ?? [],
         coaching_points: detail.coaching_points ?? [],
         variations: detail.variations ?? [],
