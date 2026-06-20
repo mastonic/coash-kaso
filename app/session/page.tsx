@@ -5,6 +5,7 @@ import { AccessGate } from '@/components/AccessGate';
 import { ToolsNav } from '@/components/ToolsNav';
 import { GenerationLoader } from '@/components/GenerationLoader';
 import { FicheSeance } from '@/components/seance/FicheSeance';
+import { NotationSeance } from '@/components/seance/NotationSeance';
 import { SchemaExercice } from '@/components/seance/SchemaExercice';
 import {
   CATEGORIES,
@@ -215,6 +216,7 @@ function SessionContent() {
   const [regeneratingPhase, setRegeneratingPhase] = useState<PhaseType | null>(null);
 
   const [seance, setSeance] = useState<Seance | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [source, setSource] = useState<'ia' | 'bibliotheque' | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -397,9 +399,9 @@ function SessionContent() {
     // Sauvegarder les exercices utilisés pour l'anti-répétition
     sauvegarderExercices(phases.map((p) => p.titre));
 
-    const sessionId = `seance-${Date.now()}`;
+    const newSessionId = `seance-${Date.now()}`;
     const sessionRecord = {
-      id: sessionId,
+      id: newSessionId,
       version: 2,
       theme: draft.params.theme,
       categorie: draft.params.categorie,
@@ -430,6 +432,7 @@ function SessionContent() {
       }).catch(() => {/* silencieux */});
     }
 
+    setSessionId(newSessionId);
     setSeance(assembled);
     setStep('seance');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -479,7 +482,7 @@ function SessionContent() {
                 ← Modifier les choix
               </button>
               <button
-                onClick={() => { setStep('form'); setSeance(null); setDraft(null); setShareMsg(''); }}
+                onClick={() => { setStep('form'); setSeance(null); setSessionId(null); setDraft(null); setShareMsg(''); }}
                 className="text-[#9CA3AF] transition-all hover:text-[#F3F4F6]"
               >
                 ← Nouvelle séance
@@ -511,6 +514,9 @@ function SessionContent() {
               </p>
             )}
             <FicheSeance seance={seance} />
+            {sessionId && (
+              <NotationSeance sessionId={sessionId} />
+            )}
           </div>
         </div>
         <div className="hidden bg-white p-6 print:block">

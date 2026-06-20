@@ -7,6 +7,7 @@ import { ToolsNav } from '@/components/ToolsNav';
 import { SessionPlaybook } from '@/components/SessionPlaybook';
 import { SessionExportPDF } from '@/components/SessionExportPDF';
 import { FicheSeance } from '@/components/seance/FicheSeance';
+import { NotationSeance } from '@/components/seance/NotationSeance';
 import type { SessionData } from '@/lib/gemini';
 import type { Seance } from '@/lib/seance/schema';
 
@@ -23,6 +24,9 @@ interface HistorySession {
   charge?: string;
   date: string;
   content?: SessionData | Seance;
+  coach_rating?: number;
+  coach_feedback?: string;
+  was_executed?: boolean;
 }
 
 function isSeanceV2(content: SessionData | Seance | undefined): content is Seance {
@@ -149,6 +153,12 @@ function SessionDetailContent({ params }: { params: Promise<{ id: string }> }) {
                 month: 'long',
                 year: 'numeric',
               })}
+            />
+            <NotationSeance
+              sessionId={session.id}
+              initialRating={session.coach_rating}
+              initialFeedback={session.coach_feedback}
+              initialWasExecuted={session.was_executed}
             />
           </section>
         </div>
